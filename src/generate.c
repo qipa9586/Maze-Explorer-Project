@@ -1,0 +1,126 @@
+#include <stdlib.h>
+#include <time.h>
+#include "maze.h"
+
+/* 栈的基本操作 */
+StackNode *initStack() {
+    StackNode *s = (StackNode *)malloc(sizeof(StackNode));
+    s->next = NULL;
+    return s;
+}
+
+void push(StackNode *top, Position pos) {
+    StackNode *p = (StackNode *)malloc(sizeof(StackNode));
+    p->pos = pos;
+    p->next = top->next;
+    top->next = p;
+}
+
+void pop(StackNode *top, Position *pos) {
+    if (top == NULL || top->next == NULL) return;
+    StackNode *del = top->next;
+    *pos = del->pos;
+    top->next = del->next;
+    free(del);
+    return;
+}
+
+Position peek(StackNode *top) {
+    return top->next->pos;
+}
+
+bool isEmpty(StackNode *top) {
+    return top->next == NULL;
+}
+
+/* 随机化DFS生成迷宫 */
+void generateRandomizedMaze(Maze *maze) {
+    StackNode *stack = initStack();
+
+    maze->grid[0][0].visited = true;
+    Position tmp_pos;
+    tmp_pos.row = 0; tmp_pos.col = 0;
+    push(stack, tmp_pos);
+
+    // 方向（偏移）数组
+    int dRows[] = {-1, 1, 0, 0};  // 上、下、左、右 → 行的偏移量
+    int dCols[] = {0, 0, -1, 1};  // 上、下、左、右 → 列的偏移量
+    
+    // 栈非空时
+    while (!isEmpty(stack)) {
+        Position curr = peek(stack);
+
+        /* 一: 收集未访问过的邻居 */
+        int unvisited[4] = {0, 1, 2, 3};  // 0上1下2左3右
+        int count = 0;
+        int nextRow;
+        int nextCol;
+
+        for (int i = 0; i < 4; i++) {  // 四个方向相邻格子位置
+            nextRow = curr.row + dRows[i];
+            nextCol = curr.col + dCols[i];
+            // 若(nr, nc)没越界且没被访问过
+            if (nextRow >= 0 && nextRow < maze->rows 
+                && nextCol >= 0 && nextCol < maze->cols) {
+                if (!maze->grid[nextRow][nextCol].visited) {
+                    unvisited[count++] = i;  // 记录方向编号
+                }
+            }
+        }
+
+        /* 二: 分支判断 */
+        if (!count) {
+            Position tmp_pos;
+            pop(stack, &tmp_pos);  // 死胡同走不通，丢掉这个位置并回溯
+            continue;
+        }
+        
+        /* 三: 随机选一个未访问过的邻居*/
+        for (int i = count - 1; i > 0; i--) {
+            int j = rand() % (i + 1);
+            int tmp = unvisited[j];
+            unvisited[j] = unvisited[i];
+            unvisited[i] = tmp;
+        }
+        int chosen = unvisited[0];
+        nextRow = curr.row + dRows[chosen];
+        nextCol = curr.col + dCols[chosen];
+        
+        /* 
+         * 四: 拆墙（格子的上下左右墙，两格各改一次）
+         * case 0: 此格的上边界，相邻的下边界; case 1: 此格的下边界，相邻的上边界;
+         * case 2: 此格的左边界，相邻的右边界; case 3: 此格的右边界，相邻的左边界;
+         */
+        switch (chosen) {
+            case 0: {
+                maze->grid[curr.row][curr.col].top = false;
+                maze->grid[nextRow][nextCol].bottom = false;
+            } break;
+
+            case 1: {
+                maze->grid[curr.row][curr.col].bottom = false;
+                maze->grid[nextRow][nextCol].top = false;
+            } break;
+
+            case 2: {
+                maze->grid[curr.row][curr.col].left = false;
+                maze->grid[nextRow][nextCol].right = false;
+            } break;
+
+            case 3: {
+                maze->grid[curr.row][curr.col].right = false;
+                maze->grid[nextRow][nextCol].left = false;
+            } break;
+        
+            default:
+                break;
+        }
+
+        /* 五: 进入邻居 */
+        maze->grid[nextRow][nextCol].visited = true;
+        Position pos_push;
+        pos_push.row = nextRow;
+        pos_push.col = nextCol;
+        push(stack, pos_push);
+    }
+}
