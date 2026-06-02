@@ -1,4 +1,5 @@
 #include <raylib.h>
+#include <stdio.h>
 #include "maze.h"
 
 void drawMaze(Maze *maze, Font font) {
@@ -13,16 +14,24 @@ void drawMaze(Maze *maze, Font font) {
             /*
              * 画格子底色 (区分起点/终点/普通) && 画墙
              * 使用到的函数:
-             * DrawRectangle(startX, startY, endX, endY, color);
-             * DrawLine(startX, startY, endX, endY, color);
+             * DrawRectangle(startX, startY, endX, endY, color);  画矩形-格子底色
+             * DrawLine(startX, startY, endX, endY, color);       画直线-墙
+             * DrawCircle(centerX, centerY, radius, color);       画圆形-起点终点
              */ 
 
             int cx = x + CELL_SIZE / 2;  // 圆心 x
             int cy = y + CELL_SIZE / 2;  // 圆心 y
             int radius = CELL_SIZE / 4;  // 圆的半径
+
             // 先画格子填充（底色）
             // 普通格子为灰色
             DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, DARKGRAY);
+
+            // 看到 BFS 的扩张
+            if (cell.explored) {
+                DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, (Color){50, 50, 80, 255}); // 深蓝紫
+            }
+
             if (col == 0 && row == 0) {
                 // 起点颜色为绿色
                 DrawCircle(cx, cy, radius, GREEN);

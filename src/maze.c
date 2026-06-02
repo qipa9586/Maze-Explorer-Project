@@ -24,8 +24,14 @@ Maze *createMaze(int rows, int cols) {
             maze->grid[i][j].bottom = true;
             maze->grid[i][j].visited = false;
             maze->grid[i][j].isPath = false;
+            maze->grid[i][j].explored = false;
         }
     }
+
+    // 初始化状态
+    maze->state = IDLE;
+    maze->genStack = NULL;
+    maze->bfsQueue = NULL;
 
     return maze;
 }

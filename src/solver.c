@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "maze.h"
 
-/* 链队的基本操作 */
+/* 链队基本操作 */
 Queue *initQueue() {
     Queue *q = (Queue *)malloc(sizeof(Queue));
     q->front = NULL;
@@ -160,4 +160,79 @@ void mazeSolver(Maze *maze) {
     }
     free(prevRow);
     free(prevCol);
+}
+
+/* 逐帧动画解开迷宫 可视化生成 */
+bool stepSolve(Maze *maze) {
+    if (isQueueEmpty(maze->bfsQueue)) {
+        return true;
+    }
+
+    // 如果当前是终点 -> return true
+    QueueNode curr;
+    dequeue(maze->bfsQueue, &curr);
+    if (curr.row == maze->rows - 1 &&
+        curr.col == maze->cols - 1) {
+        return true;
+    }
+
+    // 偏移数组
+    int dRows[] = {-1, 1, 0, 0};
+    int dCols[] = {0, 0, -1, 1};
+
+    int nextRow, nextCol;
+    for (int i = 0; i < 4; i++) {
+        nextRow = curr.row + dRows[i];
+        nextCol = curr.col + dCols[i];
+        bool isAccessible = false;
+
+        switch (i) {
+            case 0: {
+                if (maze->grid[curr.row][curr.col].top == false) {
+                    isAccessible = true;
+                }
+            } break;
+
+            case 1: {
+                if (maze->grid[curr.row][curr.col].bottom == false) {
+                    isAccessible = true;
+                }
+            } break;
+
+            case 2: {
+                if (maze->grid[curr.row][curr.col].left == false) {
+                    isAccessible = true;
+                }
+            } break;
+
+            case 3: {
+                if (maze->grid[curr.row][curr.col].right == false) {
+                    isAccessible = true;
+                }
+            } break;
+
+            default:
+                break;
+        }
+
+        if (nextRow >= 0 && nextRow < maze->rows &&
+            nextCol >= 0 && nextCol < maze->cols) {
+                if (isAccessible &&
+                    !maze->grid[nextRow][nextCol].visited) {
+                        maze->prevRow[nextRow][nextCol] = curr.row;
+                        maze->prevCol[nextRow][nextCol] = curr.col;
+                        maze->grid[nextRow][nextCol].visited = true;
+                        maze->grid[nextRow][nextCol].explored = true;
+                        // 邻居入队
+                        QueueNode neighbour;
+                        neighbour.row = nextRow;        neighbour.col = nextCol;
+                        neighbour.prevRow = curr.row;   neighbour.prevCol = curr.col;
+                        neighbour.next = NULL;
+                        enqueue(maze->bfsQueue, neighbour);
+                    }
+            }
+
+    }
+
+    return false;
 }
