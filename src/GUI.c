@@ -1,7 +1,7 @@
 #include <raylib.h>
 #include "maze.h"
 
-void drawMaze(Maze *maze) {
+void drawMaze(Maze *maze, Font font) {
     for (int row = 0; row < maze->rows; row++) {
         for (int col = 0; col < maze->cols; col++) {
             // 每个格子的像素坐标:
@@ -17,17 +17,18 @@ void drawMaze(Maze *maze) {
              * DrawLine(startX, startY, endX, endY, color);
              */ 
 
+            int cx = x + CELL_SIZE / 2;  // 圆心 x
+            int cy = y + CELL_SIZE / 2;  // 圆心 y
+            int radius = CELL_SIZE / 4;  // 圆的半径
             // 先画格子填充（底色）
             // 普通格子为灰色
             DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, DARKGRAY);
             if (col == 0 && row == 0) {
                 // 起点颜色为绿色
-                int s = CELL_SIZE / 3;  // 起点颜色方块有点大，缩小一点
-                DrawRectangle(x + s, y + s, s, s, GREEN);
+                DrawCircle(cx, cy, radius, GREEN);
             } else if (col == maze->cols - 1 && row == maze->rows - 1) {
                 // 终点颜色为红色
-                int s = CELL_SIZE / 3;
-                DrawRectangle(x + s, y + s, s, s, RED);
+                DrawCircle(cx, cy, radius, RED);
             }
 
             // 再画墙（画在格子底色上面）
@@ -45,4 +46,21 @@ void drawMaze(Maze *maze) {
             }
         }
     }
+
+    // BFS 找到的路径
+    // 每个格子的中心点坐标 = 迷宫偏移 + 格子位置 × 格子尺寸 + 半格（到中心）
+    for (int i = 0; i < maze->pathLen - 1; i++) {
+        int x1 = OFFSET_X + maze->path[i].col * CELL_SIZE + CELL_SIZE / 2;  
+        int x2 = OFFSET_X + maze->path[i + 1].col * CELL_SIZE + CELL_SIZE / 2;
+        int y1 = OFFSET_Y + maze->path[i].row * CELL_SIZE + CELL_SIZE / 2;
+        int y2 = OFFSET_Y + maze->path[i + 1].row * CELL_SIZE + CELL_SIZE / 2;
+        DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, 3.0f, GOLD);
+    }
+
+    // int cx_start = OFFSET_X + CELL_SIZE / 2;
+    // int cy_start = OFFSET_Y + CELL_SIZE / 2;
+    // int cx_end = OFFSET_X + (maze->cols - 1) * CELL_SIZE + CELL_SIZE / 2;
+    // int cy_end = OFFSET_Y + (maze->rows - 1) * CELL_SIZE + CELL_SIZE / 2;
+    // DrawCircle(cx_start, cy_start, CELL_SIZE / 4, RED);
+    // DrawCircle(cx_end, cy_end, CELL_SIZE / 4, GREEN);
 }

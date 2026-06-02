@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "maze.h"
 
-/* 创建\初始化迷宫 */
+/* 创建&初始化迷宫 */
 Maze *createMaze(int rows, int cols) {
     // 先分配内存
     Maze *maze = (Maze *)malloc(sizeof(Maze));
@@ -12,6 +12,8 @@ Maze *createMaze(int rows, int cols) {
     for (int i = 0; i < maze->rows; i++) {
         maze->grid[i] = (Cell *)malloc(sizeof(Cell) * maze->cols);
     }
+    maze->path = (Position *)malloc(sizeof(Position) * maze->rows * maze->cols);
+    maze->pathLen = 0;
 
     // 再初始化每个格子里面的值
     for (int i = 0; i < maze->rows; i++) {
@@ -21,6 +23,7 @@ Maze *createMaze(int rows, int cols) {
             maze->grid[i][j].right = true;
             maze->grid[i][j].bottom = true;
             maze->grid[i][j].visited = false;
+            maze->grid[i][j].isPath = false;
         }
     }
 
@@ -33,5 +36,7 @@ void destroyMaze(Maze *maze) {
         free(maze->grid[i]);
     }
     free(maze->grid);
+    free(maze->path);
+    maze->pathLen = 0;
     free(maze);
 }

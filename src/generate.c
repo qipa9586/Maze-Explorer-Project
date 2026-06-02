@@ -2,7 +2,7 @@
 #include <time.h>
 #include "maze.h"
 
-/* 栈的基本操作 */
+/* 链栈的基本操作 */
 StackNode *initStack() {
     StackNode *s = (StackNode *)malloc(sizeof(StackNode));
     s->next = NULL;
@@ -18,18 +18,18 @@ void push(StackNode *top, Position pos) {
 
 void pop(StackNode *top, Position *pos) {
     if (top == NULL || top->next == NULL) return;
+
     StackNode *del = top->next;
     *pos = del->pos;
     top->next = del->next;
     free(del);
-    return;
 }
 
 Position peek(StackNode *top) {
     return top->next->pos;
 }
 
-bool isEmpty(StackNode *top) {
+bool isStackEmpty(StackNode *top) {
     return top->next == NULL;
 }
 
@@ -37,45 +37,45 @@ bool isEmpty(StackNode *top) {
 void generateRandomizedMaze(Maze *maze) {
     StackNode *stack = initStack();
 
-    maze->grid[0][0].visited = true;
+    maze->grid[0][0].visited = true; // 原点默认已被访问过
+    
     Position tmp_pos;
     tmp_pos.row = 0; tmp_pos.col = 0;
-    push(stack, tmp_pos);
+    push(stack, tmp_pos);  // 原点先进显式栈
 
-    // 方向（偏移）数组
-    int dRows[] = {-1, 1, 0, 0};  // 上、下、左、右 → 行的偏移量
-    int dCols[] = {0, 0, -1, 1};  // 上、下、左、右 → 列的偏移量
+    // 方向（偏移）数组 四个方向找上下左右邻居
+    int dRows[] = {-1, 1, 0, 0};  // 方向偏移：行上-1 下+1 左0   右0
+    int dCols[] = {0, 0, -1, 1};  // 方向偏移：列上0  下0  左-1  右+1
     
-    // 栈非空时
-    while (!isEmpty(stack)) {
+    // 主循环 栈非空时
+    while (!isStackEmpty(stack)) {
         Position curr = peek(stack);
 
-        /* 一: 收集未访问过的邻居 */
+        /* 1. 收集未访问过的邻居 */
         int unvisited[4] = {0, 1, 2, 3};  // 0上1下2左3右
         int count = 0;
-        int nextRow;
-        int nextCol;
+        int nextRow, nextCol;
 
         for (int i = 0; i < 4; i++) {  // 四个方向相邻格子位置
             nextRow = curr.row + dRows[i];
             nextCol = curr.col + dCols[i];
             // 若(nr, nc)没越界且没被访问过
-            if (nextRow >= 0 && nextRow < maze->rows 
-                && nextCol >= 0 && nextCol < maze->cols) {
-                if (!maze->grid[nextRow][nextCol].visited) {
-                    unvisited[count++] = i;  // 记录方向编号
+            if (nextRow >= 0 && nextRow < maze->rows && 
+                nextCol >= 0 && nextCol < maze->cols) {
+                    if (!maze->grid[nextRow][nextCol].visited) {
+                        unvisited[count++] = i;  // 记录方向编号
                 }
             }
         }
 
-        /* 二: 分支判断 */
+        /* 2. 分支判断 */
         if (!count) {
             Position tmp_pos;
             pop(stack, &tmp_pos);  // 死胡同走不通，丢掉这个位置并回溯
             continue;
         }
         
-        /* 三: 随机选一个未访问过的邻居*/
+        /* 3. 随机选一个未访问过的邻居 Fisher-Yates 洗牌算法 */
         for (int i = count - 1; i > 0; i--) {
             int j = rand() % (i + 1);
             int tmp = unvisited[j];
@@ -87,7 +87,7 @@ void generateRandomizedMaze(Maze *maze) {
         nextCol = curr.col + dCols[chosen];
         
         /* 
-         * 四: 拆墙（格子的上下左右墙，两格各改一次）
+         * 4. 拆墙（格子的上下左右墙，两格各改一次）
          * case 0: 此格的上边界，相邻的下边界; case 1: 此格的下边界，相邻的上边界;
          * case 2: 此格的左边界，相邻的右边界; case 3: 此格的右边界，相邻的左边界;
          */
@@ -116,7 +116,7 @@ void generateRandomizedMaze(Maze *maze) {
                 break;
         }
 
-        /* 五: 进入邻居 */
+        /* 5. 进入邻居 */
         maze->grid[nextRow][nextCol].visited = true;
         Position pos_push;
         pos_push.row = nextRow;
