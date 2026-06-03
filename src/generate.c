@@ -76,7 +76,7 @@ void generateRandomizedMaze(Maze *maze) {
         
         /* 3. 随机选一个未访问过的邻居 Fisher-Yates 洗牌算法 */
         for (int i = count - 1; i > 0; i--) {
-            int j = rand() % (i + 1);
+            int j = rand() % (i + 1);   // 随机选一个 0~i 的未访问的点
             int tmp = unvisited[j];
             unvisited[j] = unvisited[i];
             unvisited[i] = tmp;

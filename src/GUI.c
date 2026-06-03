@@ -72,4 +72,12 @@ void drawMaze(Maze *maze, Font font) {
     // int cy_end = OFFSET_Y + (maze->rows - 1) * CELL_SIZE + CELL_SIZE / 2;
     // DrawCircle(cx_start, cy_start, CELL_SIZE / 4, RED);
     // DrawCircle(cx_end, cy_end, CELL_SIZE / 4, GREEN);
+
+    // 画玩家高亮格子
+    if (maze->state == PLAYING) {
+        int cx = OFFSET_X + maze->playerCol * CELL_SIZE + CELL_SIZE / 4;
+        int cy = OFFSET_Y + maze->playerRow * CELL_SIZE + CELL_SIZE / 4;
+        DrawRectangle(cx, cy, CELL_SIZE / 2, CELL_SIZE / 2, ORANGE);
+    }
+
 }

@@ -43,7 +43,7 @@ typedef struct STACK {
 
 /* 状态机枚举 */
 typedef enum STATE {
-    IDLE, GENERATING, GENERATED, SOLVING, SOLVED    
+    IDLE, GENERATING, GENERATED, SOLVING, SOLVED, PLAYING, WON   
 } MazeState;
 
 // 单格子
@@ -64,6 +64,8 @@ typedef struct MAZE {
     StackNode *genStack; // DFS 动画帧栈（跨帧持久）
     Queue *bfsQueue;     // BFS 动画队列（跨帧持久）
     int **prevRow, **prevCol;  // BFS 回溯数组（跨帧持久） 需要储存在结构体中不会丢失
+    int playerRow, playerCol;  // 玩家当前位置
+    int playerStep;            // 玩家当前步数
 } Maze;
 
 /* 函数声明 */

@@ -32,6 +32,9 @@ Maze *createMaze(int rows, int cols) {
     maze->state = IDLE;
     maze->genStack = NULL;
     maze->bfsQueue = NULL;
+    maze->playerRow = 0;
+    maze->playerCol = 0;
+    maze->playerStep = 0;
 
     return maze;
 }
