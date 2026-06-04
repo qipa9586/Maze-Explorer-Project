@@ -8,9 +8,11 @@ Maze *createMaze(int rows, int cols) {
     Maze *maze = (Maze *)malloc(sizeof(Maze));
     maze->rows = rows;
     maze->cols = cols;
-    maze->cellSize = (LENGTH / cols < WIDTH / rows) ? LENGTH / cols : WIDTH / rows;  // 取两个方向中较小的那个做格子大小 保证迷宫不超出窗口
+    int availH = WIDTH - TOOLBAR_H;
+    maze->cellSize = (LENGTH / cols < availH / rows) ? LENGTH / cols : availH / rows;  // 取两个方向中较小的那个做格子大小 保证迷宫不超出窗口
     maze->offsetX = (LENGTH - maze->cols * maze->cellSize) / 2;
-    maze->offsetY = (WIDTH - maze->rows * maze->cellSize) / 2;
+    maze->offsetY = TOOLBAR_H + (availH - maze->rows * maze->cellSize) / 2;
+    
     maze->grid = (Cell **)malloc(sizeof(Cell *) * maze->rows);
     for (int i = 0; i < maze->rows; i++) {
         maze->grid[i] = (Cell *)malloc(sizeof(Cell) * maze->cols);
@@ -18,7 +20,7 @@ Maze *createMaze(int rows, int cols) {
     maze->path = (Position *)malloc(sizeof(Position) * maze->rows * maze->cols);
     maze->pathLen = 0;
 
-    // 再初始化每个格子里面的值
+    // 初始化每个格子里面的值
     for (int i = 0; i < maze->rows; i++) {
         for (int j = 0; j < maze->cols; j++) {
             maze->grid[i][j].top = true;
@@ -44,6 +46,7 @@ Maze *createMaze(int rows, int cols) {
     maze->prevCol = NULL;
     maze->instantMode = false;
     maze->confirmReturn = false;
+    maze->confirmQuit = false;
 
     // 初始化菜单按钮
     int btnWidth = 600, btnHeight = 100, gap = 40;
@@ -53,12 +56,23 @@ Maze *createMaze(int rows, int cols) {
     maze->menuButton[0] = (MenuButton) {{btnX, startY, btnWidth, btnHeight}, "Animated Generation", false};
     maze->menuButton[1] = (MenuButton) {{btnX, startY + btnHeight + gap, btnWidth, btnHeight}, "Instant Generation", false};
     maze->menuButton[2] = (MenuButton) {{btnX, startY + (btnHeight + gap) * 2, btnWidth, btnHeight}, "Player Exploration", false};
+    // 二级菜单
     btnWidth = 450, btnHeight = 75, gap = 30;
     startY = WIDTH / 2 - (btnHeight * 3 + gap * 2) / 2;
     btnX = LENGTH / 2 - btnWidth / 2;
     maze->sizeButton[0] = (MenuButton) {{btnX, startY, btnWidth, btnHeight}, "SMALL", false};
     maze->sizeButton[1] = (MenuButton) {{btnX, startY + btnHeight + gap, btnWidth, btnHeight}, "MEDIUM", false};
     maze->sizeButton[2] = (MenuButton) {{btnX, startY + (btnHeight + gap) * 2, btnWidth, btnHeight}, "LARGE", false};
+    // 速度/保存按钮
+    btnWidth = 50, btnHeight = 28, gap = 10;
+    startY = (TOOLBAR_H - btnHeight) / 2;
+    maze->speedButton[0] = (SpeedButton) {{btnX, startY, btnWidth, btnHeight}, "1x", 6};
+    maze->speedButton[1] = (SpeedButton) {{btnX + btnWidth + gap, startY, btnWidth, btnHeight}, "2x", 12};
+    maze->speedButton[2] = (SpeedButton) {{btnX + (btnWidth + gap) * 2, startY, btnWidth, btnHeight}, "4x", 24};
+    maze->speedButton[3] = (SpeedButton) {{btnX + (btnWidth + gap) * 3, startY, btnWidth, btnHeight}, "Max", 80};
+    maze->animSpeed = 12;
+
+    maze->saveButton = (MenuButton) {{btnX + (btnWidth + gap) * 4 + 40, startY, btnWidth + 50, btnHeight}, "SAVE", false};
 
     return maze;
 }

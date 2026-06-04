@@ -9,6 +9,8 @@ int main(void) {
 
     // 初始化窗口
     InitWindow(LENGTH, WIDTH, "Maze Explorer 迷宫寻路");  // 也有 Claude Code 的功劳
+    // 禁止 raylib 默认 ESC 退出 防止误触
+    SetExitKey(0);
     // 设置目标帧率
     SetTargetFPS(60);
     // 定义字体
@@ -21,7 +23,14 @@ int main(void) {
     
     // 主循环 GUI
     while (!WindowShouldClose()) {
-        
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            if (maze->state == IDLE) {
+                break;
+            } else {
+                maze->confirmQuit = true;
+            }
+        }
+
         if (maze->state == IDLE && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             Vector2 mouse = GetMousePosition();
             for (int i = 0; i < 3; i++) {
@@ -72,10 +81,26 @@ int main(void) {
                         }
                     }
                 }
+        } else if (maze->state != IDLE && maze->state != SELECTING_SIZE && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            Vector2 mouse = GetMousePosition();
+            if (maze->state == GENERATING || maze->state == GENERATED || 
+                maze->state == SOLVING || maze->state == SOLVED) {
+                    for (int i = 0; i < 4; i++) {
+                        if (CheckCollisionPointRec(mouse, maze->speedButton[i].bounds)) {
+                            maze->animSpeed = maze->speedButton[i].speed;
+                        }
+                    }
+                }
+
+            if (maze->state == PLAYING) {
+                if (CheckCollisionPointRec(mouse, maze->saveButton.bounds)) {
+                    // 等下写
+                }
+            }
         }
 
         if (maze->state == GENERATING) {
-            for (int i = 0; i < 12; i++) {  // 每帧跑 12 步 这个循环相当于改了 12 帧 然后再交给 drawMaze 显示出来
+            for (int i = 0; i < maze->animSpeed; i++) {  // 每帧跑 12(默认) 步 这个循环相当于改了 12 帧 然后再交给 drawMaze 显示出来
                 if (stepGenerate(maze)) {
                     breakCycles(maze);
                     maze->state = GENERATED;
@@ -87,23 +112,39 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BG_COLOR);
         drawMaze(maze);
+        drawToolbar(maze);
         
         // 获胜提示信息
         if (maze->state == WON) {
-            // 居中坐标
-            int winX = LENGTH / 2 - 100;
-            int winY = WIDTH / 2 - 100;
-            DrawText("YOU WON !", winX, winY, 60, RED);
+            // 居中
+            int boxW = 400, boxH = 280;
+            int winX = LENGTH / 2 - boxW / 2;
+            int winY = WIDTH / 2 - boxH / 2;
+            DrawRectangle(winX, winY, boxW, boxH, (Color){0, 0, 0, 200});
+            // 文字在框内居中：框 x + 半宽 - 文字半宽
+            DrawText("YOU WIN !", winX + boxW / 2 - MeasureText("YOU WIN !", 60) / 2, winY + 30, 60, GOLD);
             
             char steps[64];
             sprintf(steps, "Your Steps: %d", maze->playerStep);
-            DrawText(steps, winX, winY + 60, 30, WHITE);
+            DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 100, 30, WHITE);
 
             sprintf(steps, "Shortest Steps: %d", maze->pathLen - 1);
-            DrawText(steps, winX, winY + 100, 30, WHITE);
+            DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 150, 30, WHITE);
+
+            // sprintf(steps, "Shortest Steps: %d", maze->timeUsage);
         }
 
-        // DrawText(TextFormat("Frame: %d State: %d", frameCount++, maze->state), 10, 10, 20, GREEN);
+        if (maze->confirmQuit) {
+            DrawRectangle(LENGTH / 2 - 340, WIDTH / 2 - 40, 710, 80, (Color){0, 0, 0, 200});
+            DrawText("Do you want to QUIT ? (Y/N)", LENGTH / 2 - 290, WIDTH / 2 - 20, 40, YELLOW);
+            if (IsKeyPressed(KEY_Y) || IsKeyPressed(KEY_ENTER)) {
+                break;
+            }
+            if (IsKeyPressed(KEY_N)) {
+                maze->confirmQuit = false;
+            }
+        }
+
         EndDrawing();
 
         // R 键刷新/重置
@@ -123,12 +164,19 @@ int main(void) {
                 }
             }
 
-            if (maze->instantMode) {
+            if (maze->state == WON) {
+                maze->playerRow = 0;
+                maze->playerCol = 0;
+                maze->playerStep = 0;
+                generateRandomizedMaze(maze);
+                breakCycles(maze);
+                maze->state = PLAYING;
+            } else if (maze->instantMode) {
                 // 一键版 -> 重新一键生成
                 generateRandomizedMaze(maze);
                 breakCycles(maze);
                 maze->state = GENERATED;
-            } else {
+            } else if (maze->state == GENERATED || maze->state == SOLVED) {
                 // 动画版 -> 重新初始化栈
                 if (maze->genStack) { 
                     // 清理旧栈
@@ -205,7 +253,7 @@ int main(void) {
         }
 
         if (maze->state == SOLVING) {
-            for (int i = 0; i < 1; i++) {
+            for (int i = 0; i < maze->animSpeed / 2; i++) {
                 if (stepSolve(maze)) {
                     int row = maze->rows - 1;
                     int col = maze->cols - 1;
@@ -272,7 +320,7 @@ int main(void) {
                 maze->state = WON;
             }
         }
-        // H 键提示 (我搞的后门😄 只给玩家少量提示哈哈)
+        // H 键提示 (我搞的后门😄 如何打开只给玩家少量提示哈哈)
         if (IsKeyPressed(KEY_H) && maze->state == PLAYING) {
             if (maze->pathLen == 0) {
                 maze->pathLen = 0;
@@ -281,7 +329,10 @@ int main(void) {
                 maze->pathLen = 0;
             }
         }
-        
+
+        if (IsKeyPressed(KEY_F12)) {
+            TakeScreenshot(TextFormat("maze_%lld.png", (long long)time(NULL)));
+        }
     }
 
     destroyMaze(maze);
