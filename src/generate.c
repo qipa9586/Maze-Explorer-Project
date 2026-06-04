@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "maze.h"
+#include <raylib.h>
 
 /* 链栈基本操作 */
 StackNode *initStack() {
@@ -33,7 +34,7 @@ bool isStackEmpty(StackNode *top) {
     return top->next == NULL;
 }
 
-/* 随机化DFS生成迷宫 使用 while 直接一锤子生成迷宫*/
+/* 随机化DFS生成迷宫 使用 while 直接一锤子生成迷宫 */
 void generateRandomizedMaze(Maze *maze) {
     StackNode *stack = initStack();
 
@@ -45,7 +46,7 @@ void generateRandomizedMaze(Maze *maze) {
     // 方向（偏移）数组 四个方向找上下左右邻居
     int dRows[] = {-1, 1, 0, 0};  // 方向偏移：行上-1 下+1 左0   右0
     int dCols[] = {0, 0, -1, 1};  // 方向偏移：列上0  下0  左-1  右+1
-    
+
     // 主循环 栈非空时
     while (!isStackEmpty(stack)) {
         Position curr = peek(stack);
@@ -70,7 +71,7 @@ void generateRandomizedMaze(Maze *maze) {
         /* 2. 分支判断 */
         if (!count) {
             Position tmp_pos;
-            pop(maze->genStack, &tmp_pos);  // 死胡同走不通，丢掉这个位置并回溯
+            pop(stack, &tmp_pos);  // 死胡同走不通，丢掉这个位置并回溯
             continue;
         }
         
@@ -205,4 +206,64 @@ bool stepGenerate(Maze *maze) {
 
     // 还未完成 返回 false
     return false;
+}
+
+// 破坏函数 在状态改为生成完毕前再随机破坏几个墙 打破完美迷宫结构 更具迷惑性和挑战性
+void breakCycles(Maze *maze) {
+    int extras = (maze->rows * maze->cols) / 50; // 约有 1% ~ 2% 的墙被随机拆除
+    for (int j = 0; j < extras; j++)
+    {
+        // row 和 col 不碰边界行和列 范围是 1 到 rows-2
+        /*
+         * 代码解析:
+         * maze->rows - 2 = 38（40 行去掉首尾）
+         * rand() % 38 -> 0~37
+         * +1 -> 1~38
+         */
+        int row = rand() % (maze->rows - 2) + 1;
+        int col = rand() % (maze->cols - 2) + 1;
+        int dir = rand() % 4; // 随机一个方向 随机取 0~3 上下左右
+        // 拆墙（对称, 本体拆了邻居也得拆）
+        int nextRow, nextCol;
+        switch (dir) {
+            case 0: {
+                nextRow = row - 1;
+                nextCol = col;
+                if (maze->grid[row][col].top) {
+                    maze->grid[row][col].top = false;
+                    maze->grid[nextRow][nextCol].bottom = false;
+                }
+            } break;
+
+            case 1: {
+                nextRow = row + 1;
+                nextCol = col;
+                if (maze->grid[row][col].bottom) {
+                    maze->grid[row][col].bottom = false;
+                    maze->grid[nextRow][nextCol].top = false;
+                }
+            } break;
+
+            case 2: {
+                nextRow = row;
+                nextCol = col - 1;
+                if (maze->grid[row][col].left) {
+                    maze->grid[row][col].left = false;
+                    maze->grid[nextRow][nextCol].right = false;
+                }
+            } break;
+
+            case 3: {
+                nextRow = row;
+                nextCol = col + 1;
+                if (maze->grid[row][col].right) {
+                    maze->grid[row][col].right = false;
+                    maze->grid[nextRow][nextCol].left = false;
+                }
+            } break;
+
+            default:
+                break;
+            }
+    }
 }
