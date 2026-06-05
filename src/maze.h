@@ -99,6 +99,9 @@ typedef struct MAZE {
     bool confirmQuit;
     SpeedButton speedButton[4];
     int animSpeed;
+    double startTime;          // 开始的时间戳
+    double elaspedTime;
+    double bestTime[3];        // S/M/L最佳用时
 } Maze;
 
 /* 函数声明 */

@@ -29,8 +29,8 @@ void drawToolbar(Maze *maze) {
             bool hovering = CheckCollisionPointRec(mouse, maze->saveButton.bounds);
             Color btnColor = hovering ? LIGHTGRAY : GRAY;
             DrawRectangleRec(maze->saveButton.bounds, btnColor);
-            DrawText(maze->saveButton.label, maze->saveButton.bounds.x + 10, 
-                    maze->saveButton.bounds.y + 4, 20, BLACK);
+            DrawText(maze->saveButton.label, maze->saveButton.bounds.x + 22, 
+                    maze->saveButton.bounds.y + 3, 22, BLACK);
             hint = "M:Back | ? : Solve";
         } else if (maze->state == WON) {
             hint = "R:New  M:Menu";
@@ -39,7 +39,7 @@ void drawToolbar(Maze *maze) {
         }
 
         DrawText(hint, 190, 8, 20, LIGHTGRAY);
-        DrawText("F12:Screenshot", 1400, 8, 20, LIGHTGRAY);
+        // DrawText("F12:Screenshot", 1400, 8, 20, LIGHTGRAY); 截图用不了有bug
         return;
     }
 }
@@ -50,7 +50,7 @@ void drawMaze(Maze *maze) {
         if (maze->state == IDLE) {
             ClearBackground((Color){15, 20, 35, 255});
             DrawText("MAZE EXPLORER", LENGTH / 2 - 335, 100, 80, WHITE);
-            DrawText("Made By ZHM   Version 2.1.2", LENGTH / 2 - 100, 180, 35, WHITE);
+            DrawText("Made By ZHM   Version 2.1.3", LENGTH / 2 - 100, 180, 35, WHITE);
             // me Vicky With Claude Code 😄
             // 1. 获取鼠标位置
             Vector2 mouse = GetMousePosition();
@@ -158,9 +158,17 @@ void drawMaze(Maze *maze) {
 
     // 画玩家格子
     if (maze->state == PLAYING) {
-        int cx = maze->offsetX + maze->playerCol * maze->cellSize + maze->cellSize / 4;
-        int cy = maze->offsetY + maze->playerRow * maze->cellSize + maze->cellSize / 4;
-        DrawRectangle(cx, cy, maze->cellSize / 2, maze->cellSize / 2, ORANGE);
+        int centerX = maze->offsetX + maze->playerCol * maze->cellSize + maze->cellSize / 4;
+        int centerY = maze->offsetY + maze->playerRow * maze->cellSize + maze->cellSize / 4;
+        int sideLength = maze->cellSize / 2;
+        DrawRectangle(centerX, centerY, sideLength, sideLength, ORANGE);
+        Rectangle playerRect = {centerX, centerY, sideLength, sideLength};
+
+        if (CheckCollisionPointRec(GetMousePosition(), playerRect)) {
+            SetMouseCursor(MOUSE_CURSOR_POINTING_HAND); // 鼠标变手指
+        } else {
+            SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+        }
     }
     // 老提示 不要了先丢这
     /* if (maze->state != IDLE && maze->state != PLAYING && maze->state != SELECTING_SIZE) {

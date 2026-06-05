@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <raylib.h>
 #include <time.h>
 #include "maze.h"
@@ -20,7 +21,7 @@ int main(void) {
     static double lastShot = 0;
     
     /* 创建/初始化默认迷宫 + 初始化菜单按钮 + 初始化动画帧栈 */
-    Maze *maze = createMaze(DEFAULT_ROWS, DEFAULT_COLS);    // 创建/初始化迷宫
+    Maze *maze = createMaze(DEFAULT_ROWS, DEFAULT_COLS);
     
     // 主循环 GUI
     while (!WindowShouldClose()) {
@@ -38,6 +39,8 @@ int main(void) {
                 if (CheckCollisionPointRec(mouse, maze->menuButton[i].bounds)) {
                     // MazeState target = maze->button[i].target;
                     if (i == 0) {
+                        destroyMaze(maze);
+                        maze = createMaze(DEFAULT_ROWS, DEFAULT_COLS);
                         maze->instantMode = false;
                         maze->genStack = initStack();           
                         maze->grid[0][0].visited = true;        
@@ -45,6 +48,8 @@ int main(void) {
                         push(maze->genStack, start);            
                         maze->state = GENERATING;               
                     } else if (i == 1) {
+                        destroyMaze(maze);
+                        maze = createMaze(DEFAULT_ROWS, DEFAULT_COLS);
                         maze->instantMode = true;
                         generateRandomizedMaze(maze);
                         breakCycles(maze);
@@ -70,6 +75,8 @@ int main(void) {
                             breakCycles(maze);
                             maze->state = PLAYING;
                         } else if (i == 1) {
+                            destroyMaze(maze);
+                            maze = createMaze(40, 52);
                             generateRandomizedMaze(maze);
                             breakCycles(maze);
                             maze->state = PLAYING;
@@ -79,6 +86,7 @@ int main(void) {
                             generateRandomizedMaze(maze);
                             breakCycles(maze);
                             maze->state = PLAYING;
+                            maze->startTime = GetTime();
                         }
                     }
                 }
@@ -132,7 +140,8 @@ int main(void) {
             sprintf(steps, "Shortest Steps: %d", maze->pathLen - 1);
             DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 150, 30, WHITE);
 
-            // sprintf(steps, "Shortest Steps: %d", maze->timeUsage);
+            sprintf(steps, "Time: %.1f s", maze->elaspedTime);
+            DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 200, 30, WHITE);
         }
 
         if (maze->confirmQuit) {
@@ -276,6 +285,73 @@ int main(void) {
         }
 
         if (maze->state == PLAYING) {
+            // 鼠标拖拽逻辑
+            int centerX = maze->offsetX + maze->playerCol * maze->cellSize + maze->cellSize / 4;
+            int centerY = maze->offsetY + maze->playerRow * maze->cellSize + maze->cellSize / 4;
+            Rectangle playerRect = {centerX, centerY, maze->cellSize, maze->cellSize}; // 判定箱 防止点其他地方使方框移动
+            static bool dragging = false;
+
+            // 只在按下的那一帧检测鼠标是否在玩家方块上
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), playerRect)) {
+                dragging = true;
+            }
+            if (!IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+                dragging = false;
+            }
+            if (dragging) {
+                if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+                    Vector2 mouse = GetMousePosition();
+                    // 玩家屏幕坐标
+                    int centerX = maze->offsetX + maze->playerCol * maze->cellSize + maze->cellSize / 2;
+                    int centerY = maze->offsetY + maze->playerRow * maze->cellSize + maze->cellSize / 2;
+                    float dx = mouse.x - centerX;         // 正值往右、负值往左
+                    float dy = mouse.y - centerY;         // 正值往下、负值往上
+                    float threshold = maze->cellSize / 2; // 阈值 超过格子/2移动
+                    // 冷却
+                    static int dragDelay = 0;
+                    if (dragDelay > 0) {
+                        dragDelay--;
+                    } else {
+                        // 拖拽逻辑
+                        if (fabs(dx) > fabs(dy) && fabs(dx) > threshold) {
+                            // 横向 右或左
+                            if (dx > 0) {
+                                if (!maze->grid[maze->playerRow][maze->playerCol].right &&
+                                    maze->playerCol + 1 < maze->cols) {
+                                    maze->playerCol++;
+                                    maze->playerStep++;
+                                    maze->grid[maze->playerRow][maze->playerCol].playerPath = true;
+                                }
+                            } else {
+                                if (!maze->grid[maze->playerRow][maze->playerCol].left &&
+                                    maze->playerCol - 1 >= 0) {
+                                    maze->playerCol--;
+                                    maze->playerStep++;
+                                    maze->grid[maze->playerRow][maze->playerCol].playerPath = true;
+                                }
+                            }
+                        } else if (fabs(dy) > threshold) { // 纵向 下或上
+                            if (dy > 0) {
+                                if (!maze->grid[maze->playerRow][maze->playerCol].bottom &&
+                                    maze->playerRow + 1 < maze->rows) {
+                                    maze->playerRow++;
+                                    maze->playerStep++;
+                                    maze->grid[maze->playerRow][maze->playerCol].playerPath = true;
+                                }
+                            } else {
+                                if (!maze->grid[maze->playerRow][maze->playerCol].top &&
+                                    maze->playerRow - 1 >= 0) {
+                                    maze->playerRow--;
+                                    maze->playerStep++;
+                                    maze->grid[maze->playerRow][maze->playerCol].playerPath = true;
+                                }
+                            }
+                        }
+                        dragDelay = 4; // 等4帧再允许下一步
+                    }
+                }
+            }
+
             static int cooldown = 0;
             cooldown++;
             maze->grid[0][0].playerPath = true;
@@ -318,6 +394,7 @@ int main(void) {
             if (maze->playerRow == maze->rows - 1 && maze->playerCol == maze->cols - 1) {
                 maze->pathLen = 0;
                 mazeSolver(maze);
+                maze->elaspedTime = GetTime() - maze->startTime; // 计时结束
                 maze->state = WON;
             }
         }
