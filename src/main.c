@@ -17,6 +17,7 @@ int main(void) {
     // Font font = LoadFontEx(FONT_PATH, 20, NULL, 0);
     // 生成帧率控制
     // static int frameCount = 0;
+    static double lastShot = 0;
     
     /* 创建/初始化默认迷宫 + 初始化菜单按钮 + 初始化动画帧栈 */
     Maze *maze = createMaze(DEFAULT_ROWS, DEFAULT_COLS);    // 创建/初始化迷宫
@@ -328,10 +329,6 @@ int main(void) {
             } else {
                 maze->pathLen = 0;
             }
-        }
-
-        if (IsKeyPressed(KEY_F12)) {
-            TakeScreenshot(TextFormat("maze_%lld.png", (long long)time(NULL)));
         }
     }
 
