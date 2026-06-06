@@ -71,22 +71,54 @@ int main(void) {
                         if (i == 0) {
                             destroyMaze(maze);
                             maze = createMaze(20, 26);
-                            generateRandomizedMaze(maze);
-                            breakCycles(maze);
-                            maze->state = PLAYING;
+                            maze->difficulty = 0;
+                            maze->saveFilename = "save_small.bin";
+                            FILE *test = fopen(maze->saveFilename, "rb");
+                            if (test) {
+                                fclose(test);
+                                maze->loadFilename = maze->saveFilename;
+                                maze->confirmLoad = true;
+                                maze->state = LOAD_OR_NEW;
+                            } else {
+                                generateRandomizedMaze(maze);
+                                breakCycles(maze);
+                                maze->state = PLAYING;
+                                maze->startTime = GetTime();
+                            }
                         } else if (i == 1) {
                             destroyMaze(maze);
                             maze = createMaze(40, 52);
-                            generateRandomizedMaze(maze);
-                            breakCycles(maze);
-                            maze->state = PLAYING;
+                            maze->difficulty = 1;
+                            maze->saveFilename = "save_medium.bin";
+                            FILE *test = fopen(maze->saveFilename, "rb");
+                            if (test) {
+                                fclose(test);
+                                maze->loadFilename = maze->saveFilename;
+                                maze->confirmLoad = true;
+                                maze->state = LOAD_OR_NEW;
+                            } else {
+                                generateRandomizedMaze(maze);
+                                breakCycles(maze);
+                                maze->state = PLAYING;
+                                maze->startTime = GetTime();
+                            }
                         } else if (i == 2) {
                             destroyMaze(maze);
                             maze = createMaze(60, 78);
-                            generateRandomizedMaze(maze);
-                            breakCycles(maze);
-                            maze->state = PLAYING;
-                            maze->startTime = GetTime();
+                            maze->difficulty = 2;
+                            maze->saveFilename = "save_large.bin";
+                            FILE *test = fopen(maze->saveFilename, "rb");
+                            if (test) {
+                                fclose(test);
+                                maze->loadFilename = maze->saveFilename;
+                                maze->confirmLoad = true;
+                                maze->state = LOAD_OR_NEW;
+                            } else {
+                                generateRandomizedMaze(maze);
+                                breakCycles(maze);
+                                maze->state = PLAYING;
+                                maze->startTime = GetTime();
+                            }
                         }
                     }
                 }
@@ -103,7 +135,7 @@ int main(void) {
 
             if (maze->state == PLAYING) {
                 if (CheckCollisionPointRec(mouse, maze->saveButton.bounds)) {
-                    // 等下写
+                    saveGame(maze, maze->saveFilename);
                 }
             }
         }
@@ -126,7 +158,7 @@ int main(void) {
         // 获胜提示信息
         if (maze->state == WON) {
             // 居中
-            int boxW = 400, boxH = 280;
+            int boxW = 400, boxH = 310;
             int winX = LENGTH / 2 - boxW / 2;
             int winY = WIDTH / 2 - boxH / 2;
             DrawRectangle(winX, winY, boxW, boxH, (Color){0, 0, 0, 200});
@@ -142,16 +174,12 @@ int main(void) {
 
             sprintf(steps, "Time: %.1f s", maze->elaspedTime);
             DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 200, 30, WHITE);
-        }
-
-        if (maze->confirmQuit) {
-            DrawRectangle(LENGTH / 2 - 340, WIDTH / 2 - 40, 710, 80, (Color){0, 0, 0, 200});
-            DrawText("Do you want to QUIT ? (Y/N)", LENGTH / 2 - 290, WIDTH / 2 - 20, 40, YELLOW);
-            if (IsKeyPressed(KEY_Y) || IsKeyPressed(KEY_ENTER)) {
-                break;
-            }
-            if (IsKeyPressed(KEY_N)) {
-                maze->confirmQuit = false;
+            
+            if (maze->elaspedTime < maze->bestTime[maze->difficulty] 
+                || maze->bestTime[maze->difficulty] == 0) {
+                    maze->bestTime[maze->difficulty] = maze->elaspedTime;
+                    DrawText("New Best !", winX + boxW / 2 - MeasureText("New Best !", 30) / 2
+                        , winY + 220, 30, GOLD);
             }
         }
 
@@ -292,7 +320,8 @@ int main(void) {
             static bool dragging = false;
 
             // 只在按下的那一帧检测鼠标是否在玩家方块上
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), playerRect)) {
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && 
+                CheckCollisionPointRec(GetMousePosition(), playerRect)) {
                 dragging = true;
             }
             if (!IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
@@ -398,6 +427,22 @@ int main(void) {
                 maze->state = WON;
             }
         }
+        // 进入存档或者开新存档
+        if (maze->state == LOAD_OR_NEW) {
+            if (IsKeyPressed(KEY_Y) || IsKeyPressed(KEY_ENTER)) {
+                loadGame(maze, maze->loadFilename);
+                maze->startTime = GetTime() - maze->elaspedTime;
+                maze->state = PLAYING;
+                maze->confirmLoad = false;
+            }
+            if (IsKeyPressed(KEY_N) || IsKeyPressed(KEY_ESCAPE)) {
+                generateRandomizedMaze(maze);
+                breakCycles(maze);
+                maze->startTime = GetTime();
+                maze->state = PLAYING;
+                maze->confirmLoad = false;
+            }
+        }
         // H 键提示 (我搞的后门😄 如何打开只给玩家少量提示哈哈)
         if (IsKeyPressed(KEY_H) && maze->state == PLAYING) {
             if (maze->pathLen == 0) {
@@ -405,6 +450,25 @@ int main(void) {
                 mazeSolver(maze);
             } else {
                 maze->pathLen = 0;
+            }
+        }
+
+        if (maze->confirmReturn) {
+            if (IsKeyPressed(KEY_Y) || IsKeyPressed(KEY_ENTER)) {
+                maze->state = SELECTING_SIZE;
+                maze->confirmReturn = false;
+            }
+            if (IsKeyPressed(KEY_N) || IsKeyPressed(KEY_ESCAPE)) {
+                maze->confirmReturn = false;
+            }
+        }
+
+        if (maze->confirmQuit) {
+            if (IsKeyPressed(KEY_Y) || IsKeyPressed(KEY_ENTER)) {
+                break;
+            }
+            if (IsKeyPressed(KEY_N)) {
+                maze->confirmQuit = false;
             }
         }
     }

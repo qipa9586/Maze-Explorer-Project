@@ -50,7 +50,7 @@ void drawMaze(Maze *maze) {
         if (maze->state == IDLE) {
             ClearBackground((Color){15, 20, 35, 255});
             DrawText("MAZE EXPLORER", LENGTH / 2 - 335, 100, 80, WHITE);
-            DrawText("Made By ZHM   Version 2.1.3", LENGTH / 2 - 100, 180, 35, WHITE);
+            DrawText("Made By ZHM   Version 2.1.5", LENGTH / 2 - 100, 180, 35, WHITE);
             // me Vicky With Claude Code 😄
             // 1. 获取鼠标位置
             Vector2 mouse = GetMousePosition();
@@ -162,7 +162,7 @@ void drawMaze(Maze *maze) {
         int centerY = maze->offsetY + maze->playerRow * maze->cellSize + maze->cellSize / 4;
         int sideLength = maze->cellSize / 2;
         DrawRectangle(centerX, centerY, sideLength, sideLength, ORANGE);
-        Rectangle playerRect = {centerX, centerY, sideLength, sideLength};
+        Rectangle playerRect = {centerX, centerY, sideLength, sideLength}; // 玩家格子碰撞箱
 
         if (CheckCollisionPointRec(GetMousePosition(), playerRect)) {
             SetMouseCursor(MOUSE_CURSOR_POINTING_HAND); // 鼠标变手指
@@ -182,12 +182,24 @@ void drawMaze(Maze *maze) {
     if (maze->confirmReturn) {
         DrawRectangle(centerX - 325, centerY - 40, 725, 80, (Color){0, 0, 0, 200});
         DrawText("Return to size select ? (Y/N)", centerX - 275, centerY - 20, 40, YELLOW);
-        if (IsKeyPressed(KEY_Y) || IsKeyPressed(KEY_ENTER)) {
-            maze->state = SELECTING_SIZE;
-            maze->confirmReturn = false;
-        }
-        if (IsKeyPressed(KEY_N)) {
-            maze->confirmReturn = false;
+    }
+
+    if (maze->confirmQuit) {
+        DrawRectangle(LENGTH / 2 - 340, WIDTH / 2 - 40, 710, 80, (Color){0, 0, 0, 200});
+        DrawText("Do you want to QUIT ? (Y/N)", LENGTH / 2 - 290, WIDTH / 2 - 20, 40, YELLOW);
+    }
+
+    if (maze->confirmLoad) {
+        DrawRectangle(centerX - 325, centerY - 40, 725, 80, (Color){0, 0, 0, 200});
+        DrawText("Continue saved game ? (Y/N)", centerX - 275, centerY - 20, 40, YELLOW);
+    }
+
+    if (maze->showSaved) {
+        if (GetTime() - maze->savedTime > 1.0) {
+            maze->showSaved = false;
+        } else {
+            DrawRectangle(centerX - 100, centerY - 40, 200, 80, (Color){0, 0, 0, 200});
+            DrawText("Saved !", centerX - MeasureText("Saved !", 40) / 2, centerY - 20, 40, YELLOW);
         }
     }
 }

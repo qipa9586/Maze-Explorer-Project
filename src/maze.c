@@ -72,7 +72,15 @@ Maze *createMaze(int rows, int cols) {
     maze->speedButton[3] = (SpeedButton) {{btnX + (btnWidth + gap) * 3, startY, btnWidth, btnHeight}, "Max", 80};
     maze->animSpeed = 12;
 
+    maze->difficulty = 0;
+    maze->bestTime[0] = maze->bestTime[1] = maze->bestTime[2] = 0;
+
     maze->saveButton = (MenuButton) {{btnX + (btnWidth + gap) * 4 + 40, startY, btnWidth + 50, btnHeight}, "SAVE", false};
+    maze->confirmLoad = false;
+    maze->showSaved = false;
+    maze->savedTime = 0;
+    maze->saveFilename = NULL;
+    maze->loadFilename = NULL;
 
     return maze;
 }
@@ -86,4 +94,61 @@ void destroyMaze(Maze *maze) {
     free(maze->path);
     maze->pathLen = 0;
     free(maze);
+}
+
+bool saveGame(Maze *maze, const char *filename) {
+    FILE *saveFile = fopen(filename, "wb");
+    if (saveFile == NULL) {
+        return false;
+    }
+    fwrite(&maze->rows, sizeof(int), 1, saveFile);
+    fwrite(&maze->cols, sizeof(int), 1, saveFile);
+    fwrite(&maze->playerRow, sizeof(int), 1, saveFile);
+    fwrite(&maze->playerCol, sizeof(int), 1, saveFile);
+    fwrite(&maze->playerStep, sizeof(int), 1, saveFile);
+    fwrite(&maze->elaspedTime, sizeof(double), 1, saveFile);
+    for (int row = 0; row < maze->rows; row++) {
+        for (int col = 0; col < maze->cols; col++) {
+            fwrite(&maze->grid[row][col].top,        sizeof(bool), 1, saveFile);
+            fwrite(&maze->grid[row][col].bottom,     sizeof(bool), 1, saveFile);
+            fwrite(&maze->grid[row][col].left,       sizeof(bool), 1, saveFile);
+            fwrite(&maze->grid[row][col].right,      sizeof(bool), 1, saveFile);
+            fwrite(&maze->grid[row][col].playerPath, sizeof(bool), 1, saveFile);
+        }
+    }
+    maze->showSaved = true;
+    maze->savedTime = GetTime();
+    
+    fclose(saveFile);
+    return true;
+}
+
+bool loadGame(Maze *maze, const char *filename) {
+    FILE *loadFile = fopen(filename, "rb");
+    if (loadFile == NULL) {
+        return false;
+    }
+
+    fread(&maze->rows, sizeof(int), 1, loadFile);
+    fread(&maze->cols, sizeof(int), 1, loadFile);
+    fread(&maze->playerRow, sizeof(int), 1, loadFile);
+    fread(&maze->playerCol, sizeof(int), 1, loadFile);
+    fread(&maze->playerStep, sizeof(int), 1, loadFile);
+    fread(&maze->elaspedTime, sizeof(double), 1, loadFile);
+    for (int row = 0; row < maze->rows; row++) {
+        for (int col = 0; col < maze->cols; col++) {
+            fread(&maze->grid[row][col].top,        sizeof(bool), 1, loadFile);
+            fread(&maze->grid[row][col].bottom,     sizeof(bool), 1, loadFile);
+            fread(&maze->grid[row][col].left,       sizeof(bool), 1, loadFile);
+            fread(&maze->grid[row][col].right,      sizeof(bool), 1, loadFile);
+            fread(&maze->grid[row][col].playerPath, sizeof(bool), 1, loadFile);
+        }
+    }
+    int availH = WIDTH - TOOLBAR_H;
+    maze->cellSize = (LENGTH / maze->cols < availH / maze->rows) ? LENGTH / maze->cols : availH / maze->rows;
+    maze->offsetX = (LENGTH - maze->cols * maze->cellSize) / 2;
+    maze->offsetY = TOOLBAR_H + (availH - maze->rows * maze->cellSize) / 2;
+
+    fclose(loadFile);
+    return true;
 }
