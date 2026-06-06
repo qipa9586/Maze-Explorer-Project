@@ -72,7 +72,6 @@ typedef struct SPEED {
 typedef struct CELL {
     bool top, bottom, left, right;
     bool visited;
-    bool isPath;   // true: BFS 找到的路径
     bool explored; // BFS 探索过的格子
     bool playerPath;
 } Cell;
@@ -89,6 +88,8 @@ typedef struct MAZE {
     StackNode *genStack;       // DFS 动画帧栈（跨帧持久）
     Queue *bfsQueue;           // BFS 动画队列（跨帧持久）
     int **prevRow, **prevCol;  // BFS 回溯数组 需要储存在结构体中不会丢失
+    int **dist;                // BFS 每层的格子
+    int maxDist;
     int playerRow, playerCol;  
     int playerStep;            
     MenuButton menuButton[3];

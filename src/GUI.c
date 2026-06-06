@@ -50,7 +50,7 @@ void drawMaze(Maze *maze) {
         if (maze->state == IDLE) {
             ClearBackground((Color){15, 20, 35, 255});
             DrawText("MAZE EXPLORER", LENGTH / 2 - 335, 100, 80, WHITE);
-            DrawText("Made By ZHM   Version 2.1.5", LENGTH / 2 - 100, 180, 35, WHITE);
+            DrawText("Made By ZHM   Version 2.2.1", LENGTH / 2 - 100, 180, 35, WHITE);
             // me Vicky With Claude Code 😄
             // 1. 获取鼠标位置
             Vector2 mouse = GetMousePosition();
@@ -104,17 +104,18 @@ void drawMaze(Maze *maze) {
             // 普通格子为灰色
             DrawRectangle(x, y, maze->cellSize, maze->cellSize, DARKGRAY);
 
-            // 看到 BFS 的扩张
+            // 看到 BFS 的扩张 (热力图版) 凉色近 暖色远 运用的是队列 层序得到每一层然后染色
             if (cell.explored) {
-                DrawRectangle(x, y, maze->cellSize, maze->cellSize, (Color){50, 50, 80, 255}); // 深蓝紫
+                float t = (float)maze->dist[row][col] / maze->maxDist;
+                Color heat = ColorFromHSV((1.0f - t) * 240.0f, 0.8f, 1.0f);
+                DrawRectangle(x, y, maze->cellSize, maze->cellSize, heat);
             }
 
-            if (col == 0 && row == 0) {
-                // 起点颜色为绿色
-                DrawCircle(cx, cy, radius, GREEN);
-            } else if (col == maze->cols - 1 && row == maze->rows - 1) {
-                // 终点颜色为红色
-                DrawCircle(cx, cy, radius, RED);
+            // 找到的路径格子为深紫底
+            for (int i = 0; i < maze->pathLen; i++) {
+                if (maze->path[i].row == row && maze->path[i].col == col) {
+                    DrawRectangle(x, y, maze->cellSize, maze->cellSize, (Color){90, 40, 200, 210});
+                }
             }
 
             // 画玩家轨迹 放墙逻辑前面为了不让墙被覆盖
@@ -137,25 +138,15 @@ void drawMaze(Maze *maze) {
             }
         }
     }
-
-    // BFS 找到的路径
+    // BFS 找到的金线路径
     // 每个格子的中心点坐标 = 迷宫偏移 + 格子位置 × 格子尺寸 + 半格（到中心）
     for (int i = 0; i < maze->pathLen - 1; i++) {
         int x1 = maze->offsetX + maze->path[i].col * maze->cellSize + maze->cellSize / 2;  
         int x2 = maze->offsetX + maze->path[i + 1].col * maze->cellSize + maze->cellSize / 2;
         int y1 = maze->offsetY + maze->path[i].row * maze->cellSize + maze->cellSize / 2;
         int y2 = maze->offsetY + maze->path[i + 1].row * maze->cellSize + maze->cellSize / 2;
-        DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, 3.0f, GOLD);
+        DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, 4.5f, (Color){255, 210, 60, 255}); // 金色
     }
-
-    // 本来想到终点把点给变个颜色想想还是算了 直接被覆盖了
-    // int cx_start = OFFSET_X + CELL_SIZE / 2;
-    // int cy_start = OFFSET_Y + CELL_SIZE / 2;
-    // int cx_end = OFFSET_X + (maze->cols - 1) * CELL_SIZE + CELL_SIZE / 2;
-    // int cy_end = OFFSET_Y + (maze->rows - 1) * CELL_SIZE + CELL_SIZE / 2;
-    // DrawCircle(cx_start, cy_start, CELL_SIZE / 4, RED);
-    // DrawCircle(cx_end, cy_end, CELL_SIZE / 4, GREEN);
-
     // 画玩家格子
     if (maze->state == PLAYING) {
         int centerX = maze->offsetX + maze->playerCol * maze->cellSize + maze->cellSize / 4;
@@ -170,12 +161,16 @@ void drawMaze(Maze *maze) {
             SetMouseCursor(MOUSE_CURSOR_DEFAULT);
         }
     }
-    // 老提示 不要了先丢这
-    /* if (maze->state != IDLE && maze->state != PLAYING && maze->state != SELECTING_SIZE) {
-        DrawText("R:Regenerate | M:Menu | Space:Solve | ESC:Quit", 10, WIDTH - 25, 20, GREEN);
-    } else if (maze->state == PLAYING) {
-        DrawText("M:Back | ?:HINT | ESC:Quit", 10, WIDTH - 25, 20, GREEN);
-    } */
+
+    // 起点 (0, 0) 绿色
+    int startX = maze->offsetX + maze->cellSize / 2;
+    int startY = maze->offsetY + maze->cellSize / 2;
+    DrawCircle(startX, startY, maze->cellSize / 4, GREEN);
+
+    // 终点 (rows-1, cols-1) 红色
+    int ex = maze->offsetX + (maze->cols - 1) * maze->cellSize + maze->cellSize / 2;
+    int ey = maze->offsetY + (maze->rows - 1) * maze->cellSize + maze->cellSize / 2;
+    DrawCircle(ex, ey, maze->cellSize / 4, RED);
 
     int centerX = LENGTH / 2;
     int centerY = WIDTH / 2;

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "maze.h"
+#define max(a, b) a > b ? a : b 
 
 /* 链队基本操作 */
 Queue *initQueue() {
@@ -142,7 +143,6 @@ void mazeSolver(Maze *maze) {
     /* 6. 从终点顺着 prev 回溯到起点 标记路径 */
     int row = maze->rows - 1, col = maze->cols - 1;
     while (row != -1 && col != -1) {
-        maze->grid[row][col].isPath = true;
         maze->path[maze->pathLen].row = row;
         maze->path[maze->pathLen].col = col;
         maze->pathLen++;
@@ -223,6 +223,8 @@ bool stepSolve(Maze *maze) {
                         maze->prevCol[nextRow][nextCol] = curr.col;
                         maze->grid[nextRow][nextCol].visited = true;
                         maze->grid[nextRow][nextCol].explored = true;
+                        maze->dist[nextRow][nextCol] = maze->dist[curr.row][curr.col] + 1;
+                        maze->maxDist = max(maze->maxDist, maze->dist[nextRow][nextCol]);
                         // 邻居入队
                         QueueNode neighbour;
                         neighbour.row = nextRow;        neighbour.col = nextCol;

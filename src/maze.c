@@ -28,7 +28,6 @@ Maze *createMaze(int rows, int cols) {
             maze->grid[i][j].right = true;
             maze->grid[i][j].bottom = true;
             maze->grid[i][j].visited = false;
-            maze->grid[i][j].isPath = false;
             maze->grid[i][j].explored = false;
             maze->grid[i][j].playerPath = false;
         }
@@ -44,6 +43,8 @@ Maze *createMaze(int rows, int cols) {
 
     maze->prevRow = NULL;
     maze->prevCol = NULL;
+    maze->dist = NULL;
+    maze->maxDist = 0;
     maze->instantMode = false;
     maze->confirmReturn = false;
     maze->confirmQuit = false;
@@ -89,6 +90,20 @@ Maze *createMaze(int rows, int cols) {
 void destroyMaze(Maze *maze) {
     for (int i = 0; i < maze->rows; i++) {
         free(maze->grid[i]);
+    }
+    if (maze->dist) {
+        for (int i = 0; i < maze->rows; i++) {
+            free(maze->dist[i]);
+        }
+        free(maze->dist);
+    }
+    if (maze->prevRow && maze->prevCol) {
+        for (int i = 0; i < maze->rows; i++) {
+            free(maze->prevRow[i]);
+            free(maze->prevCol[i]);
+        }
+        free(maze->prevRow);
+        free(maze->prevCol);
     }
     free(maze->grid);
     free(maze->path);

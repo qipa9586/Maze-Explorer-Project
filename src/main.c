@@ -195,7 +195,6 @@ int main(void) {
                     maze->grid[row][col].right = true;
                     maze->grid[row][col].bottom = true;
                     maze->grid[row][col].visited = false;
-                    maze->grid[row][col].isPath = false;
                     maze->grid[row][col].explored = false;
                     maze->grid[row][col].playerPath = false;
                     maze->pathLen = 0;
@@ -243,7 +242,6 @@ int main(void) {
                         maze->grid[row][col].right = true;
                         maze->grid[row][col].bottom = true;
                         maze->grid[row][col].visited = false;
-                        maze->grid[row][col].isPath = false;
                         maze->grid[row][col].explored = false;
                         maze->grid[row][col].playerPath = false;
                         maze->pathLen = 0;
@@ -271,11 +269,17 @@ int main(void) {
                     maze->prevRow[i] = (int *)malloc(sizeof(int) * maze->cols);
                     maze->prevCol[i] = (int *)malloc(sizeof(int) * maze->cols);
                 }
+                // dist初始化
+                maze->dist = (int **)malloc(sizeof(int *) * maze->rows);
+                for (int i = 0; i < maze->rows; i++) {
+                    maze->dist[i] = (int *)malloc(sizeof(int) * maze->cols);
+                }
                 // 全部初始化为-1 表示没有前驱
                 for (int i = 0; i < maze->rows; i++) {
                     for (int j = 0; j < maze->cols; j++) {
                         maze->prevRow[i][j] = -1;
                         maze->prevCol[i][j] = -1;
+                        maze->dist[i][j] = -1;
                     }
                 }
                 // 重置 visited
@@ -286,17 +290,17 @@ int main(void) {
                 }
                 maze->grid[0][0].visited = true;    
                 maze->grid[0][0].explored = true; 
+                maze->dist[0][0] = 0;
                 maze->state = SOLVING;  // 切换状态为解答中
             }
         }
 
         if (maze->state == SOLVING) {
-            for (int i = 0; i < maze->animSpeed / 2; i++) {
+            for (int i = 0; i < maze->animSpeed / 4; i++) {
                 if (stepSolve(maze)) {
                     int row = maze->rows - 1;
                     int col = maze->cols - 1;
                     while (row != -1 && col != -1) {
-                        maze->grid[row][col].isPath = true;
                         maze->path[maze->pathLen].row = row;
                         maze->path[maze->pathLen].col = col;
                         maze->pathLen++;
