@@ -35,6 +35,7 @@ int main(void) {
 
         if (maze->state == IDLE && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             Vector2 mouse = GetMousePosition();
+            // 一级菜单
             for (int i = 0; i < 3; i++) {
                 if (CheckCollisionPointRec(mouse, maze->menuButton[i].bounds)) {
                     // MazeState target = maze->button[i].target;
@@ -64,7 +65,7 @@ int main(void) {
                 }
             }
         } else if (maze->state == SELECTING_SIZE && 
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) { // 保存逻辑
                 Vector2 mouse = GetMousePosition();
                 for (int i = 0; i < 3; i++) {
                     if (CheckCollisionPointRec(mouse, maze->sizeButton[i].bounds)) {
@@ -80,10 +81,7 @@ int main(void) {
                                 maze->confirmLoad = true;
                                 maze->state = LOAD_OR_NEW;
                             } else {
-                                generateRandomizedMaze(maze);
-                                breakCycles(maze);
-                                maze->state = PLAYING;
-                                maze->startTime = GetTime();
+                                maze->state = SELECTING_MODE;
                             }
                         } else if (i == 1) {
                             destroyMaze(maze);
@@ -97,10 +95,7 @@ int main(void) {
                                 maze->confirmLoad = true;
                                 maze->state = LOAD_OR_NEW;
                             } else {
-                                generateRandomizedMaze(maze);
-                                breakCycles(maze);
-                                maze->state = PLAYING;
-                                maze->startTime = GetTime();
+                                maze->state = SELECTING_MODE;
                             }
                         } else if (i == 2) {
                             destroyMaze(maze);
@@ -114,15 +109,34 @@ int main(void) {
                                 maze->confirmLoad = true;
                                 maze->state = LOAD_OR_NEW;
                             } else {
-                                generateRandomizedMaze(maze);
-                                breakCycles(maze);
-                                maze->state = PLAYING;
-                                maze->startTime = GetTime();
+                                maze->state = SELECTING_MODE;
                             }
                         }
                     }
                 }
-        } else if (maze->state != IDLE && maze->state != SELECTING_SIZE && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        } else if (maze->state == SELECTING_MODE &&
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            Vector2 mouse = GetMousePosition();
+            for (int i = 0; i < 2; i++) {
+                if (CheckCollisionPointRec(mouse, maze->modeButton[i].bounds)) {
+                    if (i == 0) {
+                        maze->challengeMode = false;
+                        generateRandomizedMaze(maze);
+                        breakCycles(maze);
+                        maze->state = PLAYING;
+                        maze->startTime = GetTime();
+                    } else if (i == 1) {
+                        maze->challengeMode = true;
+                        generateRandomizedMaze(maze);
+                        breakCycles(maze);
+                        placeItems(maze);
+                        maze->state = PLAYING;
+                        maze->startTime = GetTime();
+                    }
+                }
+            }
+        } else if (maze->state != IDLE && maze->state != SELECTING_SIZE && maze->state != SELECTING_MODE && 
+            IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) { // 按钮事件
             Vector2 mouse = GetMousePosition();
             if (maze->state == GENERATING || maze->state == GENERATED || 
                 maze->state == SOLVING || maze->state == SOLVED) {
@@ -139,6 +153,9 @@ int main(void) {
                 }
             }
         }
+    
+            
+            
 
         if (maze->state == GENERATING) {
             for (int i = 0; i < maze->animSpeed; i++) {  // 每帧跑 12(默认) 步 这个循环相当于改了 12 帧 然后再交给 drawMaze 显示出来
@@ -154,35 +171,6 @@ int main(void) {
         ClearBackground(BG_COLOR);
         drawMaze(maze);
         drawToolbar(maze);
-        
-        // 获胜提示信息
-        if (maze->state == WON) {
-            // 居中
-            int boxW = 400, boxH = 310;
-            int winX = LENGTH / 2 - boxW / 2;
-            int winY = WIDTH / 2 - boxH / 2;
-            DrawRectangle(winX, winY, boxW, boxH, (Color){0, 0, 0, 200});
-            // 文字在框内居中：框 x + 半宽 - 文字半宽
-            DrawText("YOU WIN !", winX + boxW / 2 - MeasureText("YOU WIN !", 60) / 2, winY + 30, 60, GOLD);
-            
-            char steps[64];
-            sprintf(steps, "Your Steps: %d", maze->playerStep);
-            DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 100, 30, WHITE);
-
-            sprintf(steps, "Shortest Steps: %d", maze->pathLen - 1);
-            DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 150, 30, WHITE);
-
-            sprintf(steps, "Time: %.1f s", maze->elaspedTime);
-            DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 200, 30, WHITE);
-            
-            if (maze->elaspedTime < maze->bestTime[maze->difficulty] 
-                || maze->bestTime[maze->difficulty] == 0) {
-                    maze->bestTime[maze->difficulty] = maze->elaspedTime;
-                    DrawText("New Best !", winX + boxW / 2 - MeasureText("New Best !", 30) / 2
-                        , winY + 220, 30, GOLD);
-            }
-        }
-
         EndDrawing();
 
         // R 键刷新/重置
@@ -197,9 +185,14 @@ int main(void) {
                     maze->grid[row][col].visited = false;
                     maze->grid[row][col].explored = false;
                     maze->grid[row][col].playerPath = false;
-                    maze->pathLen = 0;
+                    maze->grid[row][col].hasItem = false;
                 }
             }
+
+            maze->pathLen = 0;
+            maze->visiblePathLen = 0;
+            maze->totalItems = 0;
+            maze->collectedCount = 0;
 
             if (maze->state == WON) {
                 maze->playerRow = 0;
@@ -207,6 +200,7 @@ int main(void) {
                 maze->playerStep = 0;
                 generateRandomizedMaze(maze);
                 breakCycles(maze);
+                if (maze->challengeMode) placeItems(maze);
                 maze->state = PLAYING;
             } else if (maze->instantMode) {
                 // 一键版 -> 重新一键生成
@@ -244,9 +238,13 @@ int main(void) {
                         maze->grid[row][col].visited = false;
                         maze->grid[row][col].explored = false;
                         maze->grid[row][col].playerPath = false;
-                        maze->pathLen = 0;
+                        maze->grid[row][col].hasItem = false;
                     }
                 }
+                maze->pathLen = 0;
+                maze->visiblePathLen = 0;
+                maze->totalItems = 0;
+                maze->collectedCount = 0;
                 maze->state = IDLE;
             }
         }
@@ -310,12 +308,21 @@ int main(void) {
                         row = prevR; 
                         col = prevC;
                     }   
-                    maze->state = SOLVED;
+                    maze->visiblePathLen = 1;
+                    maze->state = BACKTRACK_ANIM;
                     break;
                 }
             }
         }
-
+        // visiblePathLen 从 1 增长 金线从终点往起点逆流
+        if (maze->state == BACKTRACK_ANIM) {
+            if (maze->visiblePathLen < maze->pathLen) {
+                maze->visiblePathLen++;
+            } else {
+                maze->state = SOLVED;
+            }
+        }
+        // 玩家模式
         if (maze->state == PLAYING) {
             // 鼠标拖拽逻辑
             int centerX = maze->offsetX + maze->playerCol * maze->cellSize + maze->cellSize / 4;
@@ -423,12 +430,23 @@ int main(void) {
                     }
                 }
             }
+            if (maze->grid[maze->playerRow][maze->playerCol].hasItem) {
+                maze->collectedCount++;
+                maze->grid[maze->playerRow][maze->playerCol].hasItem = false;
+            }
             // 终点检查
             if (maze->playerRow == maze->rows - 1 && maze->playerCol == maze->cols - 1) {
-                maze->pathLen = 0;
-                mazeSolver(maze);
-                maze->elaspedTime = GetTime() - maze->startTime; // 计时结束
-                maze->state = WON;
+                if (maze->challengeMode && maze->collectedCount < maze->totalItems) {
+                    maze->showCollectHint = true;
+                } else {
+                    maze->pathLen = 0;
+                    mazeSolver(maze);
+                    maze->elaspedTime = GetTime() - maze->startTime; // 计时结束
+                    maze->state = WON;
+                    maze->showCollectHint = false;
+                }
+            } else {
+                maze->showCollectHint = false;
             }
         }
         // 进入存档或者开新存档
@@ -440,11 +458,7 @@ int main(void) {
                 maze->confirmLoad = false;
             }
             if (IsKeyPressed(KEY_N) || IsKeyPressed(KEY_ESCAPE)) {
-                generateRandomizedMaze(maze);
-                breakCycles(maze);
-                maze->startTime = GetTime();
-                maze->state = PLAYING;
-                maze->confirmLoad = false;
+                maze->state = SELECTING_MODE;
             }
         }
         // H 键提示 (我搞的后门😄 如何打开只给玩家少量提示哈哈)

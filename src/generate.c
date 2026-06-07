@@ -267,3 +267,27 @@ void breakCycles(Maze *maze) {
             }
     }
 }
+/* 根据死胡同生成收集品 */
+void placeItems(Maze *maze) {
+    maze->totalItems = 0;
+    maze->collectedCount = 0;
+
+    for (int row = 0; row < maze->rows - 1; row++) {
+        for (int col = 0; col < maze->cols - 1; col++) {
+            if ((row == 0 && col == 0) || (row == maze->rows - 1 && col == maze->cols - 1)) {
+                continue;
+            }
+
+            int openCount = 0;
+            if (!maze->grid[row][col].top)    openCount++;
+            if (!maze->grid[row][col].bottom) openCount++;
+            if (!maze->grid[row][col].left)   openCount++;
+            if (!maze->grid[row][col].right)  openCount++;
+
+            if (openCount == 1) {
+                maze->grid[row][col].hasItem = true;
+                maze->totalItems++;
+            }
+        }
+    }
+}

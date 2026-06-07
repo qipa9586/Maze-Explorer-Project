@@ -46,19 +46,19 @@ typedef struct STACK {
 
 /* 状态机枚举 */
 typedef enum STATE {
-    IDLE,                      // 闲置状态
-    GENERATING, GENERATED,     // 生成中/已生成
-    SOLVING, SOLVED,           // 解决中/已解决
-    PLAYING, WON,              // 正在玩/赢了
-    SELECTING_SIZE,            // 选择难度（迷宫大小）
-    LOAD_OR_NEW
+    IDLE,                             // 闲置状态
+    GENERATING, GENERATED,            // 生成中/已生成
+    SOLVING, SOLVED,                  // 解决中/已解决
+    PLAYING, WON,                     // 正在玩/赢了
+    SELECTING_SIZE, SELECTING_MODE,   // 选择迷宫大小/选择速通模式或收集模式
+    LOAD_OR_NEW,
+    BACKTRACK_ANIM                    // 路径回溯动画状态
 } MazeState;
 
 /* 菜单结构体 */
 typedef struct MENU {
     Rectangle bounds;  // raylib库里已有的矩形实现: {x, y, w, h}
     const char *label; // 按钮文字标签
-    MazeState target;  // 点了后切到哪个状态
     bool hovered;      // 鼠标指针悬停时高亮
 } MenuButton;
 
@@ -74,6 +74,7 @@ typedef struct CELL {
     bool visited;
     bool explored; // BFS 探索过的格子
     bool playerPath;
+    bool hasItem;
 } Cell;
 
 // 迷宫
@@ -84,6 +85,7 @@ typedef struct MAZE {
     Cell **grid;               // 网格
     Position *path;            // BFS 路径的格子坐标
     int pathLen;               // 路径长度
+    int visiblePathLen;        // 动画路径
     MazeState state;           
     StackNode *genStack;       // DFS 动画帧栈（跨帧持久）
     Queue *bfsQueue;           // BFS 动画队列（跨帧持久）
@@ -109,12 +111,18 @@ typedef struct MAZE {
     double savedTime;          // 弹出的存档成功框时间
     const char *saveFilename;
     const char *loadFilename;
+    bool challengeMode;        // 挑战模式 false-普通模式 true-挑战模式
+    bool showCollectHint;
+    MenuButton modeButton[2];
+    int totalItems;            // 总共投放
+    int collectedCount;        // 玩家已收集数量
 } Maze;
 
 /* 函数声明 */
 void generateRandomizedMaze(Maze *maze);        // 运用 DFS 实现随机生成迷宫
 bool stepGenerate(Maze *maze);                  // 在上方函数基础上实现逐帧可视化生成迷宫
 void breakCycles(Maze *maze);                   // 破坏函数 破坏 DFS 生成的完美迷宫结构
+void placeItems(Maze *maze);
 
 void mazeSolver(Maze *maze);                    // 运用BFS实现解开迷宫
 bool stepSolve(Maze *maze);                     // 在上方函数基础上实现逐帧可视化解开迷宫

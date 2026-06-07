@@ -19,6 +19,7 @@ Maze *createMaze(int rows, int cols) {
     }
     maze->path = (Position *)malloc(sizeof(Position) * maze->rows * maze->cols);
     maze->pathLen = 0;
+    maze->visiblePathLen = 0;
 
     // 初始化每个格子里面的值
     for (int i = 0; i < maze->rows; i++) {
@@ -30,6 +31,7 @@ Maze *createMaze(int rows, int cols) {
             maze->grid[i][j].visited = false;
             maze->grid[i][j].explored = false;
             maze->grid[i][j].playerPath = false;
+            maze->grid[i][j].hasItem = false;
         }
     }
 
@@ -48,6 +50,8 @@ Maze *createMaze(int rows, int cols) {
     maze->instantMode = false;
     maze->confirmReturn = false;
     maze->confirmQuit = false;
+    maze->challengeMode = false;
+    maze->showCollectHint = false;
 
     // 初始化菜单按钮
     int btnWidth = 600, btnHeight = 100, gap = 40;
@@ -73,15 +77,21 @@ Maze *createMaze(int rows, int cols) {
     maze->speedButton[3] = (SpeedButton) {{btnX + (btnWidth + gap) * 3, startY, btnWidth, btnHeight}, "Max", 80};
     maze->animSpeed = 12;
 
-    maze->difficulty = 0;
-    maze->bestTime[0] = maze->bestTime[1] = maze->bestTime[2] = 0;
-
     maze->saveButton = (MenuButton) {{btnX + (btnWidth + gap) * 4 + 40, startY, btnWidth + 50, btnHeight}, "SAVE", false};
     maze->confirmLoad = false;
     maze->showSaved = false;
     maze->savedTime = 0;
     maze->saveFilename = NULL;
     maze->loadFilename = NULL;
+    // 三级菜单 模式选择
+    btnWidth = 450, btnHeight = 75, gap = 30;
+    startY = WIDTH / 2 - (btnHeight * 3 + gap * 2) / 2;
+    btnX = LENGTH / 2 - btnWidth / 2;
+    maze->modeButton[0] = (MenuButton) {{btnX, startY, btnWidth, btnHeight}, "Normal Mode", false};
+    maze->modeButton[1] = (MenuButton) {{btnX, startY + btnHeight + gap, btnWidth, btnHeight}, "Challenge Mode", false};
+
+    maze->difficulty = 0;
+    maze->bestTime[0] = maze->bestTime[1] = maze->bestTime[2] = 0;
 
     return maze;
 }
@@ -118,10 +128,13 @@ bool saveGame(Maze *maze, const char *filename) {
     }
     fwrite(&maze->rows, sizeof(int), 1, saveFile);
     fwrite(&maze->cols, sizeof(int), 1, saveFile);
+    fwrite(&maze->totalItems, sizeof(int), 1, saveFile);
+    fwrite(&maze->collectedCount, sizeof(int), 1, saveFile);
     fwrite(&maze->playerRow, sizeof(int), 1, saveFile);
     fwrite(&maze->playerCol, sizeof(int), 1, saveFile);
     fwrite(&maze->playerStep, sizeof(int), 1, saveFile);
     fwrite(&maze->elaspedTime, sizeof(double), 1, saveFile);
+    fwrite(&maze->challengeMode, sizeof(bool), 1, saveFile);
     for (int row = 0; row < maze->rows; row++) {
         for (int col = 0; col < maze->cols; col++) {
             fwrite(&maze->grid[row][col].top,        sizeof(bool), 1, saveFile);
@@ -129,6 +142,7 @@ bool saveGame(Maze *maze, const char *filename) {
             fwrite(&maze->grid[row][col].left,       sizeof(bool), 1, saveFile);
             fwrite(&maze->grid[row][col].right,      sizeof(bool), 1, saveFile);
             fwrite(&maze->grid[row][col].playerPath, sizeof(bool), 1, saveFile);
+            fwrite(&maze->grid[row][col].hasItem,    sizeof(bool), 1, saveFile);
         }
     }
     maze->showSaved = true;
@@ -146,10 +160,13 @@ bool loadGame(Maze *maze, const char *filename) {
 
     fread(&maze->rows, sizeof(int), 1, loadFile);
     fread(&maze->cols, sizeof(int), 1, loadFile);
+    fread(&maze->totalItems, sizeof(int), 1, loadFile);
+    fread(&maze->collectedCount, sizeof(int), 1, loadFile);
     fread(&maze->playerRow, sizeof(int), 1, loadFile);
     fread(&maze->playerCol, sizeof(int), 1, loadFile);
     fread(&maze->playerStep, sizeof(int), 1, loadFile);
     fread(&maze->elaspedTime, sizeof(double), 1, loadFile);
+    fread(&maze->challengeMode, sizeof(bool), 1, loadFile);
     for (int row = 0; row < maze->rows; row++) {
         for (int col = 0; col < maze->cols; col++) {
             fread(&maze->grid[row][col].top,        sizeof(bool), 1, loadFile);
@@ -157,6 +174,7 @@ bool loadGame(Maze *maze, const char *filename) {
             fread(&maze->grid[row][col].left,       sizeof(bool), 1, loadFile);
             fread(&maze->grid[row][col].right,      sizeof(bool), 1, loadFile);
             fread(&maze->grid[row][col].playerPath, sizeof(bool), 1, loadFile);
+            fread(&maze->grid[row][col].hasItem,    sizeof(bool), 1, loadFile);
         }
     }
     int availH = WIDTH - TOOLBAR_H;
