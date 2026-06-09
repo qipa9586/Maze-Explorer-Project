@@ -61,11 +61,11 @@ void drawToolbar(Maze *maze) {
 
 void drawMaze(Maze *maze) {
     // 画菜单 闲置状态画菜单
-    if (maze->state == IDLE || maze->state == SELECTING_SIZE || maze->state == SELECTING_MODE) {
+    if (maze->state == IDLE || maze->state == SELECTING_SIZE || maze->state == SELECTING_MODE || maze->state == PROFILE) {
         if (maze->state == IDLE) {
             ClearBackground((Color){15, 20, 35, 255});
             DrawText("MAZE EXPLORER", LENGTH / 2 - 335, 100, 80, WHITE);
-            DrawText("Made By ZHM   Version 2.2.3", LENGTH / 2 - 100, 180, 35, WHITE);
+            DrawText("Made By ZHM   Version 2.2.5", LENGTH / 2 - 100, 180, 35, WHITE);
             // me Vicky With Claude Code 😄
             // 1. 获取鼠标位置
             Vector2 mouse = GetMousePosition();
@@ -76,8 +76,15 @@ void drawMaze(Maze *maze) {
                 Color btnColor = hovering ? LIGHTGRAY : GRAY;
                 DrawRectangleRec(maze->menuButton[i].bounds, btnColor);
                 // 4. 画按钮文字
-                DrawText(maze->menuButton[i].label, maze->menuButton[i].bounds.x + 60, maze->menuButton[i].bounds.y + 25, 40, BLACK);
+                DrawText(maze->menuButton[i].label, maze->menuButton[i].bounds.x + 60, 
+                         maze->menuButton[i].bounds.y + 25, 40, BLACK);
             }
+            bool hovering = CheckCollisionPointRec(mouse, maze->profileButton.bounds);
+            Color btnColor = hovering ? LIGHTGRAY : GRAY;
+            DrawRectangleRec(maze->profileButton.bounds, btnColor);
+            DrawText(maze->profileButton.label, maze->profileButton.bounds.x + 60,
+                     maze->profileButton.bounds.y + 25, 40, BLACK);
+
         } else if (maze->state == SELECTING_SIZE) { // 二级菜单
             ClearBackground((Color){15, 20, 35, 255});
             DrawText("CHOOSE MAZE", LENGTH / 2 - 300, 100, 80, WHITE);
@@ -89,7 +96,7 @@ void drawMaze(Maze *maze) {
                 Color btnColor = hovering ? LIGHTGRAY : GRAY;
                 DrawRectangleRec(maze->sizeButton[i].bounds, btnColor);
                 DrawText(maze->sizeButton[i].label, maze->sizeButton[i].bounds.x + 60,
-                    maze->sizeButton[i].bounds.y + 15, 40, BLACK);
+                         maze->sizeButton[i].bounds.y + 15, 40, BLACK);
             }
         } else if (maze->state == SELECTING_MODE) { // 三级菜单
             ClearBackground((Color){15, 20, 35, 255});
@@ -103,7 +110,89 @@ void drawMaze(Maze *maze) {
                 DrawText(maze->modeButton[i].label, maze->modeButton[i].bounds.x + 60,
                     maze->modeButton[i].bounds.y + 15, 40, BLACK);
             }
+        } else if (maze->state == PROFILE) {    // 玩家档案界面
+            ClearBackground((Color){15, 20, 35, 255});
+            Vector2 mouse = GetMousePosition();
+            // 画退出按钮
+            bool hovering = CheckCollisionPointRec(mouse, maze->backButton.bounds);
+            Color btnColor = hovering ? LIGHTGRAY : GRAY;
+            DrawRectangleRec(maze->backButton.bounds, btnColor);
+            DrawText(maze->backButton.label, maze->backButton.bounds.x + 125,
+                     maze->backButton.bounds.y + 8, 40, BLACK);
+            if (CheckCollisionPointRec(mouse, maze->backButton.bounds) &&
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || 
+                IsKeyPressed(KEY_M) || IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_BACKSPACE)) {
+                maze->state = IDLE;
+            }
+
+            DrawText("PLAYER PROFILE", LENGTH / 2 - 285, 60, 60, WHITE);
+            // 战绩 
+            char stats[128];
+            sprintf(stats, "Games: %d     Won: %d     Won Rate: %.0f%%", 
+                    maze->gamesPlayed, maze->gamesWon, 
+                    maze->gamesPlayed > 0 ? (float)(maze->gamesWon / maze->gamesPlayed) * 100.0 : 0);
+            DrawText(stats, LENGTH / 2 - MeasureText(stats, 30) / 2, 140, 30, WHITE);
+            
+            char bestRecord[128];
+            DrawText("Best Records: ", LENGTH / 2 - 100, 200, 28, GOLD);
+            const char *labels[] = {"Small", "Medium", "Large"};
+            for (int i = 0; i < 3; i++) {
+                if (maze->bestTime[i] == 0.0) {
+                    sprintf(bestRecord, "%-6s ( %2dx%-2d ):  ---", 
+                        labels[i], 
+                        i == 0 ? 20 : i == 1 ? 40 : 60, // 迷宫大小
+                        i == 0 ? 26 : i == 1 ? 52 : 78);
+                } else {
+                    sprintf(bestRecord, "%s ( %2dx%-2d ):  %.1fs", 
+                        labels[i], 
+                        i == 0 ? 20 : i == 1 ? 40 : 60, 
+                        i == 0 ? 26 : i == 1 ? 52 : 78,
+                        maze->bestTime[i]);
+                }
+                DrawText(bestRecord, LENGTH / 2 - 200, 245 + i * 35, 24, WHITE);
+            }
+
+            int x = 475;
+            int y = 415;
+            int xCol[] = {x, x + 80, x + 180, x + 360, x + 460, x + 635};
+            DrawText("Recent Games:", LENGTH / 2 - 100, 370, 28, GOLD);
+            DrawText("No.", xCol[0], y, 24, WHITE);
+            DrawText("Size", xCol[1], y, 24, WHITE);
+            DrawText("Player Steps", xCol[2], y, 24, WHITE);
+            DrawText("Grade", xCol[3], y, 24, WHITE);
+            DrawText("Elasped Time", xCol[4], y, 24, WHITE);
+
+            int startIndex = maze->historyCount > 5 ? maze->historyCount - 5 : 0;
+            int displayCount = maze->historyCount > 5 ? 5 : maze->historyCount;
+            for (int i = 0; i < displayCount; i++) {
+                GameRecord *G = &maze->history[startIndex + i];
+                const char *sizeLabel = G->rows == 20 ? "Small" : G->rows == 40 ? "Medium" : "Large";
+                // 排版
+                char buf[32];
+                y += 35;
+
+                sprintf(buf, "#%d", startIndex + i + 1);
+                DrawText(buf, xCol[0], y, 24, WHITE);
+
+                DrawText(sizeLabel, xCol[1], y, 24, WHITE);
+
+                sprintf(buf, "%d steps", G->steps);
+                DrawText(buf, xCol[2], y, 24, WHITE);
+
+                sprintf(buf, "%c", G->grade);
+                DrawText(buf, xCol[3], y, 24, WHITE);
+
+                sprintf(buf, "%.1fs", G->time);
+                DrawText(buf, xCol[4], y, 24, WHITE);
+
+                DrawText(G->won ? "Win" : "Lose", xCol[5], y, 24, WHITE);
+            }
+
+            if (maze->historyCount == 0) {
+                DrawText("No games played yet.", LENGTH / 2 - 210, 415, 24, WHITE);
+            }
         }
+
         return;
     }
 
@@ -187,6 +276,16 @@ void drawMaze(Maze *maze) {
             DrawLineEx((Vector2){x1, y1}, (Vector2){x2, y2}, 4.5f, (Color){255, 210, 60, 255}); // 金色
         }
     }
+    // 起点 (0, 0) 绿色
+    int startX = maze->offsetX + maze->cellSize / 2;
+    int startY = maze->offsetY + maze->cellSize / 2;
+    DrawCircle(startX, startY, maze->cellSize / 4, GREEN);
+
+    // 终点 (rows-1, cols-1) 红色
+    int ex = maze->offsetX + (maze->cols - 1) * maze->cellSize + maze->cellSize / 2;
+    int ey = maze->offsetY + (maze->rows - 1) * maze->cellSize + maze->cellSize / 2;
+    DrawCircle(ex, ey, maze->cellSize / 4, RED);
+
     // 画玩家格子
     if (maze->state == PLAYING) {
         int centerX = maze->offsetX + maze->playerCol * maze->cellSize + maze->cellSize / 4;
@@ -201,16 +300,6 @@ void drawMaze(Maze *maze) {
             SetMouseCursor(MOUSE_CURSOR_DEFAULT);
         }
     }
-
-    // 起点 (0, 0) 绿色
-    int startX = maze->offsetX + maze->cellSize / 2;
-    int startY = maze->offsetY + maze->cellSize / 2;
-    DrawCircle(startX, startY, maze->cellSize / 4, GREEN);
-
-    // 终点 (rows-1, cols-1) 红色
-    int ex = maze->offsetX + (maze->cols - 1) * maze->cellSize + maze->cellSize / 2;
-    int ey = maze->offsetY + (maze->rows - 1) * maze->cellSize + maze->cellSize / 2;
-    DrawCircle(ex, ey, maze->cellSize / 4, RED);
 
     int centerX = LENGTH / 2;
     int centerY = WIDTH / 2;
@@ -238,13 +327,20 @@ void drawMaze(Maze *maze) {
         }
     }
 
-    if (maze->showSaved) {
+    if (maze->showCollectHint) {
         int centerX = LENGTH / 2;
         int centerY = WIDTH / 2;
         DrawRectangle(centerX - 250, centerY - 40, 500, 80, (Color){0, 0, 0, 200});
         DrawText("Collect all items first !",
                  centerX - MeasureText("Collect all items first !", 35) / 2,
                  centerY - 20, 35, GOLD);
+    }
+
+    if (maze->showSaved) {
+        int centerX = LENGTH / 2;
+        int centerY = WIDTH / 2;
+        DrawRectangle(centerX - 100, centerY - 40, 200, 80, (Color){0, 0, 0, 200});
+        DrawText("Saved !", centerX - MeasureText("Saved !", 40) / 2, centerY - 20, 40, YELLOW);
     }
 
     // 获胜提示信息
@@ -267,32 +363,25 @@ void drawMaze(Maze *maze) {
         sprintf(steps, "Time: %.1f s", maze->elaspedTime);
         DrawText(steps, winX + boxW / 2 - MeasureText(steps, 30) / 2, winY + 200, 30, WHITE);
 
-        if (maze->elaspedTime < maze->bestTime[maze->difficulty] || maze->bestTime[maze->difficulty] == 0) {
-            maze->bestTime[maze->difficulty] = maze->elaspedTime;
+        if (maze->isNewBest) {
             DrawText("New Best !", winX + boxW / 2 - MeasureText("New Best !", 30) / 2, winY + 220, 30, GOLD);
         }
 
-        int grade = -1;
-        float ratio = (float)maze->playerStep / (maze->pathLen - 1);
-        if (ratio <= 1.1)       grade = 0; // S
-        else if (ratio <= 1.5)  grade = 1; // A
-        else if (ratio <= 2.0)  grade = 2; // B
-        else                    grade = 3; // C
-        if (grade != -1) {
+        if (maze->grade != '\0') {
             Color gradeColor;
             const char *gradeText;
-            switch (grade) {
-            case 0: {
+            switch (maze->grade) {
+            case 'S': {
                 gradeColor = GOLD;
                 gradeText = "S";
             } break;
 
-            case 1: {
+            case 'A': {
                 gradeColor = RED;
                 gradeText = "A";
             } break;
 
-            case 2: {
+            case 'B': {
                 gradeColor = YELLOW;
                 gradeText = "B";
             } break;
@@ -303,7 +392,7 @@ void drawMaze(Maze *maze) {
             } break;
             }
             // 光环 (S专属)
-            if (grade == 0) {
+            if (maze->grade == 'S') {
                 DrawText("S", winX + boxW / 2 - MeasureText("S", 110) / 2, winY + 230, 110, (Color){255, 215, 0, 40});
                 DrawText("S", winX + boxW / 2 - MeasureText("S", 95) / 2, winY + 238, 95, (Color){255, 215, 0, 70});
                 DrawText("S", winX + boxW / 2 - MeasureText("S", 80) / 2, winY + 245, 80, (Color){255, 215, 0, 150});

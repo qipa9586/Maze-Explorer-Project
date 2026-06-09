@@ -267,27 +267,74 @@ void breakCycles(Maze *maze) {
             }
     }
 }
-/* 根据死胡同生成收集品 */
+/* 投放收集品 */
 void placeItems(Maze *maze) {
-    maze->totalItems = 0;
-    maze->collectedCount = 0;
+    mazeSolver(maze);
 
-    for (int row = 0; row < maze->rows - 1; row++) {
-        for (int col = 0; col < maze->cols - 1; col++) {
-            if ((row == 0 && col == 0) || (row == maze->rows - 1 && col == maze->cols - 1)) {
+    maze->collectedCount = 0;
+    int dRows[] = {-1, 1, 0, 0};
+    int dCols[] = {0, 0, -1, 1};
+
+    for (int i = 1; i < maze->pathLen - 1; i++) {
+        int row = maze->path[i].row;
+        int col = maze->path[i].col;
+        if ((row == maze->rows - 1 && col == maze->cols - 1) || 
+            (row == 0 && col == 0)) {
                 continue;
             }
 
-            int openCount = 0;
-            if (!maze->grid[row][col].top)    openCount++;
-            if (!maze->grid[row][col].bottom) openCount++;
-            if (!maze->grid[row][col].left)   openCount++;
-            if (!maze->grid[row][col].right)  openCount++;
+        for (int d = 0; d < 4; d++) {
+            int nextRow = row + dRows[d];
+            int nextCol = col + dCols[d];
+            if (nextRow < 0 || nextRow >= maze->rows || 
+                nextCol < 0 || nextCol >= maze->cols) {
+                continue;
+            }
+            
+            bool isAccessible = false;
+            switch (d) {
+                case 0: {
+                    if (!maze->grid[row][col].top) {
+                        isAccessible = true;
+                    }
+                } break;
 
-            if (openCount == 1) {
-                maze->grid[row][col].hasItem = true;
+                case 1: {
+                    if (!maze->grid[row][col].bottom) {
+                        isAccessible = true;
+                    }
+                } break;
+
+                case 2: {
+                    if (!maze->grid[row][col].left) {
+                        isAccessible = true;
+                    }
+                } break;
+
+                case 3: {
+                    if (!maze->grid[row][col].right) {
+                        isAccessible = true;
+                    }
+                } break;
+
+                default:
+                    break;
+            }
+
+            bool isPath = false;
+            for (int j = 0; j < maze->pathLen; j++) {
+                if (maze->path[j].row == nextRow && maze->path[j].col == nextCol) {
+                    isPath = true;
+                    break;
+                }
+            }
+
+            if (isAccessible && !isPath && !maze->grid[nextRow][nextCol].hasItem && ((rand() % 100) < 66)) {
+                maze->grid[nextRow][nextCol].hasItem = true;
                 maze->totalItems++;
             }
-        }
+        } 
     }
+
+    maze->pathLen = 0;
 }

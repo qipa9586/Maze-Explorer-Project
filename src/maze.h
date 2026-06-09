@@ -52,7 +52,8 @@ typedef enum STATE {
     PLAYING, WON,                     // 正在玩/赢了
     SELECTING_SIZE, SELECTING_MODE,   // 选择迷宫大小/选择速通模式或收集模式
     LOAD_OR_NEW,
-    BACKTRACK_ANIM                    // 路径回溯动画状态
+    BACKTRACK_ANIM,                   // 路径回溯动画状态
+    PROFILE                           // 玩家档案
 } MazeState;
 
 /* 菜单结构体 */
@@ -67,6 +68,16 @@ typedef struct SPEED {
     const char *label;
     int speed;
 } SpeedButton;
+// 游玩记录
+typedef struct RECORD {
+    int rows, cols;
+    int steps;
+    double time;
+    char grade;
+    bool challengeMode;
+    bool won;
+} GameRecord;
+#define MAX_HISTORY 20
 
 // 单格子
 typedef struct CELL {
@@ -106,6 +117,8 @@ typedef struct MAZE {
     double elaspedTime;        // 用时
     int difficulty;
     double bestTime[3];        // S/M/L最佳用时
+    bool isNewBest;
+    char grade;
     bool confirmLoad;           
     bool showSaved;            // 显示存档成功
     double savedTime;          // 弹出的存档成功框时间
@@ -116,6 +129,14 @@ typedef struct MAZE {
     MenuButton modeButton[2];
     int totalItems;            // 总共投放
     int collectedCount;        // 玩家已收集数量
+    Sound walkSound, wallSound, collectSound, allCollectedSound, winSound; // 音频
+    bool walkPlayed, wallPlayed, allCollectedPlayed;
+    MenuButton profileButton;
+    MenuButton backButton;
+    int gamesPlayed;            // 总局数
+    int gamesWon;              // 胜场数
+    GameRecord history[MAX_HISTORY];  // 最近20局
+    int historyCount;          // 已记录局数
 } Maze;
 
 /* 函数声明 */
@@ -131,6 +152,8 @@ Maze *createMaze(int rows, int cols);
 void destroyMaze(Maze *maze);
 bool saveGame(Maze *maze, const char *filename);
 bool loadGame(Maze *maze, const char *filename);
+bool saveProfile(Maze *maze);
+bool loadProfile(Maze *maze);
 /* GUI */
 void drawMaze(Maze *maze);
 void drawToolbar(Maze *maze);

@@ -5,7 +5,7 @@
 /* 创建&初始化迷宫 */
 Maze *createMaze(int rows, int cols) {
     // 先分配内存
-    Maze *maze = (Maze *)malloc(sizeof(Maze));
+    Maze *maze = (Maze *)calloc(1, sizeof(Maze));
     maze->rows = rows;
     maze->cols = cols;
     int availH = WIDTH - TOOLBAR_H;
@@ -53,14 +53,16 @@ Maze *createMaze(int rows, int cols) {
     maze->challengeMode = false;
     maze->showCollectHint = false;
 
-    // 初始化菜单按钮
+    // 初始化一级菜单按钮
     int btnWidth = 600, btnHeight = 100, gap = 40;
-    int startY = WIDTH / 2 - (btnHeight * 3 + gap * 2) / 2;
+    int startY = WIDTH / 2 - (btnHeight * 4 + gap * 3) / 2;
     // btnX = 水平居中：窗口宽减按钮宽，左右平分空白
-    int btnX = LENGTH / 2 - btnWidth / 2;
+    int btnX = LENGTH / 2 - btnWidth / 2 + 20;
     maze->menuButton[0] = (MenuButton) {{btnX, startY, btnWidth, btnHeight}, "Animated Generation", false};
     maze->menuButton[1] = (MenuButton) {{btnX, startY + btnHeight + gap, btnWidth, btnHeight}, "Instant Generation", false};
     maze->menuButton[2] = (MenuButton) {{btnX, startY + (btnHeight + gap) * 2, btnWidth, btnHeight}, "Player Exploration", false};
+    maze->profileButton = (MenuButton) {{btnX, startY + (btnHeight + gap) * 3, btnWidth, btnHeight}, "Player Profile", false};
+    maze->backButton    = (MenuButton) {{btnX + 5, WIDTH - 100, btnWidth - 50, 60}, "Back to Menu", false};
     // 二级菜单
     btnWidth = 450, btnHeight = 75, gap = 30;
     startY = WIDTH / 2 - (btnHeight * 3 + gap * 2) / 2;
@@ -92,7 +94,18 @@ Maze *createMaze(int rows, int cols) {
 
     maze->difficulty = 0;
     maze->bestTime[0] = maze->bestTime[1] = maze->bestTime[2] = 0;
+    maze->isNewBest = false;
+    maze->grade = '\0';
 
+    Wave w = LoadWave("assets/all_collected.wav"); maze->allCollectedSound = LoadSoundFromWave(w);  UnloadWave(w);
+    w = LoadWave("assets/collect.wav");            maze->collectSound = LoadSoundFromWave(w);       UnloadWave(w);
+    w = LoadWave("assets/walk.wav");               maze->walkSound = LoadSoundFromWave(w);          UnloadWave(w);
+    w = LoadWave("assets/wall.wav");               maze->wallSound = LoadSoundFromWave(w);          UnloadWave(w);
+    w = LoadWave("assets/win.wav");                maze->winSound = LoadSoundFromWave(w);           UnloadWave(w);
+    maze->walkPlayed = maze->wallPlayed = maze->allCollectedPlayed = false;
+
+    maze->totalItems = 0;
+    
     return maze;
 }
 
@@ -118,6 +131,11 @@ void destroyMaze(Maze *maze) {
     free(maze->grid);
     free(maze->path);
     maze->pathLen = 0;
+    UnloadSound(maze->allCollectedSound);
+    UnloadSound(maze->collectSound);
+    UnloadSound(maze->walkSound);
+    UnloadSound(maze->wallSound);
+    UnloadSound(maze->winSound);
     free(maze);
 }
 
@@ -183,5 +201,44 @@ bool loadGame(Maze *maze, const char *filename) {
     maze->offsetY = TOOLBAR_H + (availH - maze->rows * maze->cellSize) / 2;
 
     fclose(loadFile);
+    return true;
+}
+
+bool saveProfile(Maze *maze) {
+    FILE *saveProfile = fopen("player_profile.bin", "wb");
+    if (saveProfile == NULL) {
+        return false;
+    }
+
+    fwrite(&maze->bestTime, sizeof(double), 3, saveProfile);
+    fwrite(&maze->gamesPlayed, sizeof(int), 1, saveProfile);
+    fwrite(&maze->gamesWon, sizeof(int), 1, saveProfile);
+    int totalSteps = 0;
+    for (int i = 0; i < maze->historyCount; i++) {
+        totalSteps += maze->history[i].steps;
+    }
+    fwrite(&totalSteps, sizeof(int), 1, saveProfile);
+    fwrite(&maze->historyCount, sizeof(int), 1, saveProfile);
+    fwrite(&maze->history, sizeof(GameRecord), maze->historyCount, saveProfile);
+    fclose(saveProfile);
+
+    return true;
+}
+
+bool loadProfile(Maze *maze) {
+    FILE *loadProfile = fopen("player_profile.bin", "rb");
+    if (loadProfile == NULL) {
+        return false;
+    }
+
+    fread(&maze->bestTime, sizeof(double), 3, loadProfile);
+    fread(&maze->gamesPlayed, sizeof(int), 1, loadProfile);
+    fread(&maze->gamesWon, sizeof(int), 1, loadProfile);
+    int totalSteps ;
+    fread(&totalSteps, sizeof(int), 1, loadProfile);
+    fread(&maze->historyCount, sizeof(int), 1, loadProfile);
+    fread(&maze->history, sizeof(GameRecord), maze->historyCount, loadProfile);
+    fclose(loadProfile);
+
     return true;
 }
