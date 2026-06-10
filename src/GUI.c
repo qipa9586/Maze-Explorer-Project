@@ -4,7 +4,7 @@
 
 void drawToolbar(Maze *maze) {
     const char *hint = "";
-    if (maze->state != IDLE && maze->state != SELECTING_SIZE) {
+    if (maze->state != IDLE && maze->state != SELECTING_SIZE && maze->state != ABOUT) {
         DrawRectangle(0, 0, LENGTH, TOOLBAR_H, (Color){25, 30, 45, 255});
         if ((maze->state == GENERATING || maze->state == GENERATED ||
             maze->state == SOLVING || maze->state == SOLVED) && !maze->instantMode) {
@@ -61,11 +61,12 @@ void drawToolbar(Maze *maze) {
 
 void drawMaze(Maze *maze) {
     // 画菜单 闲置状态画菜单
-    if (maze->state == IDLE || maze->state == SELECTING_SIZE || maze->state == SELECTING_MODE || maze->state == PROFILE) {
+    if (maze->state == IDLE || maze->state == SELECTING_SIZE || maze->state == SELECTING_MODE || 
+        maze->state == PROFILE || maze->state == ABOUT) {
         if (maze->state == IDLE) {
             ClearBackground((Color){15, 20, 35, 255});
             DrawText("MAZE EXPLORER", LENGTH / 2 - 335, 100, 80, WHITE);
-            DrawText("Made By ZHM   Version 2.2.5", LENGTH / 2 - 100, 180, 35, WHITE);
+            DrawText("Made By ZHM   Version 2.2.6", LENGTH / 2 - 100, 180, 35, WHITE);
             // me Vicky With Claude Code 😄
             // 1. 获取鼠标位置
             Vector2 mouse = GetMousePosition();
@@ -84,6 +85,12 @@ void drawMaze(Maze *maze) {
             DrawRectangleRec(maze->profileButton.bounds, btnColor);
             DrawText(maze->profileButton.label, maze->profileButton.bounds.x + 60,
                      maze->profileButton.bounds.y + 25, 40, BLACK);
+
+            hovering = CheckCollisionPointRec(mouse, maze->aboutButton.bounds);
+            btnColor = hovering ? LIGHTGRAY : GRAY;
+            DrawRectangleRec(maze->aboutButton.bounds, btnColor);
+            DrawText(maze->aboutButton.label, maze->aboutButton.bounds.x + 30,
+                     maze->aboutButton.bounds.y + 7, 20, WHITE);
 
         } else if (maze->state == SELECTING_SIZE) { // 二级菜单
             ClearBackground((Color){15, 20, 35, 255});
@@ -117,8 +124,8 @@ void drawMaze(Maze *maze) {
             bool hovering = CheckCollisionPointRec(mouse, maze->backButton.bounds);
             Color btnColor = hovering ? LIGHTGRAY : GRAY;
             DrawRectangleRec(maze->backButton.bounds, btnColor);
-            DrawText(maze->backButton.label, maze->backButton.bounds.x + 125,
-                     maze->backButton.bounds.y + 8, 40, BLACK);
+            DrawText(maze->backButton.label, maze->backButton.bounds.x + 50,
+                     maze->backButton.bounds.y + 12, 30, BLACK);
             if (CheckCollisionPointRec(mouse, maze->backButton.bounds) &&
                 IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || 
                 IsKeyPressed(KEY_M) || IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_BACKSPACE)) {
@@ -190,6 +197,22 @@ void drawMaze(Maze *maze) {
 
             if (maze->historyCount == 0) {
                 DrawText("No games played yet.", LENGTH / 2 - 210, 415, 24, WHITE);
+            }
+            
+        } else if (maze->state == ABOUT) {
+            ClearBackground((Color){15, 20, 35, 255});
+            DrawTexture(maze->aboutTex, 0, 0, WHITE);
+
+            Vector2 mouse = GetMousePosition();
+            bool hovering = CheckCollisionPointRec(mouse, maze->backButton.bounds);
+            Color btnColor = hovering ? LIGHTGRAY : GRAY;
+            DrawRectangleRec(maze->backButton.bounds, btnColor);
+            DrawText(maze->backButton.label, maze->backButton.bounds.x + 50,
+                     maze->backButton.bounds.y + 12, 30, BLACK);
+            if (CheckCollisionPointRec(mouse, maze->backButton.bounds) &&
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || 
+                IsKeyPressed(KEY_M) || IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_BACKSPACE)) {
+                maze->state = IDLE;
             }
         }
 
