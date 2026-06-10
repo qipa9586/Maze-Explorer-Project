@@ -4,6 +4,7 @@
 #include <raylib.h>
 #include <time.h>
 #include "maze.h"
+#include "about_logo.h"
 
 int main(void) {
     srand(time(NULL));
@@ -30,6 +31,9 @@ int main(void) {
         maze->gamesPlayed = 0;
         maze->gamesWon = 0;
     }
+    Image aboutImg = LoadImageFromMemory(".png", about_about_png, about_about_png_len);
+    maze->aboutTex = LoadTextureFromImage(aboutImg);
+    UnloadImage(aboutImg);
 
     // 主循环 GUI
     while (!WindowShouldClose()) {
@@ -74,6 +78,9 @@ int main(void) {
             }
             if (CheckCollisionPointRec(mouse, maze->profileButton.bounds)) {
                 maze->state = PROFILE;
+            }
+            if (CheckCollisionPointRec(mouse, maze->aboutButton.bounds)) {
+                maze->state = ABOUT;
             }
         } else if (maze->state == SELECTING_SIZE && 
             IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) { // 保存逻辑

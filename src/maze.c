@@ -62,7 +62,7 @@ Maze *createMaze(int rows, int cols) {
     maze->menuButton[1] = (MenuButton) {{btnX, startY + btnHeight + gap, btnWidth, btnHeight}, "Instant Generation", false};
     maze->menuButton[2] = (MenuButton) {{btnX, startY + (btnHeight + gap) * 2, btnWidth, btnHeight}, "Player Exploration", false};
     maze->profileButton = (MenuButton) {{btnX, startY + (btnHeight + gap) * 3, btnWidth, btnHeight}, "Player Profile", false};
-    maze->backButton    = (MenuButton) {{btnX + 5, WIDTH - 100, btnWidth - 50, 60}, "Back to Menu", false};
+    maze->backButton    = (MenuButton) {{btnX + 600, WIDTH - 200, btnWidth - 300, 60}, "Back to Menu", false};
     // 二级菜单
     btnWidth = 450, btnHeight = 75, gap = 30;
     startY = WIDTH / 2 - (btnHeight * 3 + gap * 2) / 2;
@@ -91,6 +91,8 @@ Maze *createMaze(int rows, int cols) {
     btnX = LENGTH / 2 - btnWidth / 2;
     maze->modeButton[0] = (MenuButton) {{btnX, startY, btnWidth, btnHeight}, "Normal Mode", false};
     maze->modeButton[1] = (MenuButton) {{btnX, startY + btnHeight + gap, btnWidth, btnHeight}, "Challenge Mode", false};
+    // 关于作者按钮
+    maze->aboutButton = (MenuButton) {{LENGTH - 180, WIDTH - 55, 120, 35}, "About", false};
 
     maze->difficulty = 0;
     maze->bestTime[0] = maze->bestTime[1] = maze->bestTime[2] = 0;
@@ -136,6 +138,7 @@ void destroyMaze(Maze *maze) {
     UnloadSound(maze->walkSound);
     UnloadSound(maze->wallSound);
     UnloadSound(maze->winSound);
+    UnloadTexture(maze->aboutTex);
     free(maze);
 }
 

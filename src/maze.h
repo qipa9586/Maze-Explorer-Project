@@ -53,7 +53,7 @@ typedef enum STATE {
     SELECTING_SIZE, SELECTING_MODE,   // 选择迷宫大小/选择速通模式或收集模式
     LOAD_OR_NEW,
     BACKTRACK_ANIM,                   // 路径回溯动画状态
-    PROFILE                           // 玩家档案
+    PROFILE, ABOUT                    // 玩家档案/关于作者
 } MazeState;
 
 /* 菜单结构体 */
@@ -107,7 +107,9 @@ typedef struct MAZE {
     int playerStep;            
     MenuButton menuButton[3];
     MenuButton sizeButton[3];
-    MenuButton saveButton;              
+    MenuButton saveButton;
+    MenuButton aboutButton;
+    Texture2D aboutTex;                      
     bool instantMode;          // 直接生成模式 false-动画生成 true-立刻生成
     bool confirmReturn;
     bool confirmQuit;
